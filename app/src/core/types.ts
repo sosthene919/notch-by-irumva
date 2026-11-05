@@ -12,6 +12,8 @@ export interface Activity {
   expiresAt?: number;
   /** Kind-specific inert data (numbers/booleans/short text) for rich rendering. */
   data?: Record<string, string | number | boolean>;
+  /** Sensitive content is redacted on the lock screen (brief section 7). */
+  sensitive?: boolean;
 }
 
 export type IslandView = 'collapsed' | 'compact' | 'minimal' | 'expanded' | 'full';

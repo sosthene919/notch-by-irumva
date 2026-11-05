@@ -33,6 +33,31 @@ async function listen(event: string, cb: () => void): Promise<Unlisten> {
   } catch { return () => {}; }
 }
 
+import type { SecureBridge } from '../security/secureSettings';
+
+export const nativeSecureBridge: SecureBridge = {
+  settingsLoad: () => invoke<string | null>('settings_load'),
+  settingsSave: async (s) => (await invoke<boolean>('settings_save', { plaintext: s })) ?? false,
+  secretSet: async (k, v) => (await invoke<boolean>('secret_set', { key: k, value: v })) ?? false,
+  secretGet: (k) => invoke<string | null>('secret_get', { key: k }),
+  secretDelete: async (k) => (await invoke<boolean>('secret_delete', { key: k })) ?? false,
+  helloVerify: async (message) =>
+    (await invoke<{ ok: boolean; status: string }>('hello_verify', { message })) ?? { ok: false, status: 'unavailable' },
+  pairingStart: () => invoke<string | null>('pairing_start'),
+  dataExport: () => invoke<string | null>('data_export'),
+  dataErase: async () => (await invoke<boolean>('data_erase')) ?? false,
+};
+
+export async function onSessionLock(cb: (locked: boolean) => void): Promise<() => void> {
+  if (!isTauri) return () => {};
+  try {
+    const { listen } = await import('@tauri-apps/api/event');
+    const u1 = await listen('notch://session-lock', () => cb(true));
+    const u2 = await listen('notch://session-unlock', () => cb(false));
+    return () => { u1(); u2(); };
+  } catch { return () => {}; }
+}
+
 export const native = {
   mediaGet: () => invoke<MediaState | null>('media_get'),
   mediaControl: async (action: 'play' | 'pause' | 'toggle' | 'next' | 'previous'): Promise<boolean> =>

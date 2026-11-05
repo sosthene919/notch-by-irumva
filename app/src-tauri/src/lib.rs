@@ -6,6 +6,7 @@
 //! no taskbar button, no Alt+Tab entry). Providers arrive in Phase 2.
 
 mod native;
+mod security;
 
 #[cfg(windows)]
 mod window_style {
@@ -38,9 +39,19 @@ pub fn run() {
             native::volume_get,
             native::volume_set,
             native::volume_toggle_mute,
-            native::privacy_get
+            native::privacy_get,
+            security::settings_load,
+            security::settings_save,
+            security::secret_set,
+            security::secret_get,
+            security::secret_delete,
+            security::hello_verify,
+            security::pairing_start,
+            security::data_export,
+            security::data_erase
         ])
         .setup(|app| {
+            security::init_security(app.handle());
             native::start_native_listeners(app.handle().clone());
             use tauri::Manager;
             if let Some(window) = app.get_webview_window("main") {

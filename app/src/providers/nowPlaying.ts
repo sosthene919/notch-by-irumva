@@ -33,7 +33,7 @@ export function createNowPlayingProvider(source: MediaSource = nativeMediaSource
     publishFn({
       id: 'now-playing', providerId: 'now-playing', kind: 'now-playing',
       title: m.title, subtitle: m.artist ? `${m.artist}${m.album ? ` — ${m.album}` : ''}` : m.app,
-      priority: 50, startedAt: Date.now(),
+      priority: 50, startedAt: Date.now(), sensitive: true,
       data: { status: m.status, positionSeconds: m.positionSeconds, durationSeconds: m.durationSeconds, app: m.app, ...(m.artDataUrl ? { art: m.artDataUrl } : {}) },
     });
   };

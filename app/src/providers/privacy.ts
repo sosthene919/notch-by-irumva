@@ -32,7 +32,7 @@ export function createPrivacyProvider(source: PrivacySource = nativePrivacySourc
       current.add(id);
       publish({
         id, providerId: 'privacy', kind: `privacy-${u.kind}`,
-        title: TITLES[u.kind], subtitle: u.app, priority: 90, startedAt: Date.now(),
+        title: TITLES[u.kind], subtitle: u.app, priority: 90, startedAt: Date.now(), sensitive: true,
         data: { app: u.app },
       });
     }

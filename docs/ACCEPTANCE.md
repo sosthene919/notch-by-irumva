@@ -27,5 +27,15 @@
 - [x] Runtime smoke test (2026-11-05, release build): app stays alive with all native listeners running; live GSMTC session from Edge (WAV playback) shows "test-tone.wav — MSEdge" in the compact pill (CDP-verified); hardware volume-down key produces "Volume 22%" pill via the native Core Audio callback (CDP screenshot). Privacy scan runs without crashing (no sensor was in use to display). Note: desktop BitBlt screenshots do not capture our layered transparent window — verification used PrintWindow + CDP capture.
 - [x] Phase 1 correction: the Phase 1 desktop screenshot was confounded by a pre-existing third-party "Notch" overlay on this machine (ASSUMPTIONS A13). Our own rendering is now verified by PrintWindow/CDP, and `GWL_EXSTYLE` read-back exposed that the ex-style applied in `setup` was being overwritten — fixed with a delayed apply in `lib.rs`.
 
+## Phase 3 — Security layer
+- [x] Named-pipe IPC: current-user-SID ACL (fail-closed), one-time 5-minute pairing codes (5-attempt lockout), per-client secrets, HMAC-SHA256 + 60s window + single-use nonces (`src-tauri/src/security.rs`, `src/security/ipcProtocol.ts`)
+- [x] Live E2E (Node client, 10/10): wrong code rejected, code single-use, unsigned rejected, signed ping→pong, replay rejected, tampered payload rejected (`bad-hmac`), signed publish appears in the island
+- [x] Settings encrypted at rest with DPAPI (files verified base64 ciphertext in app data); paired clients likewise; secrets only in Credential Manager; settings layer refuses secret-like keys
+- [x] Windows Hello gate command (`hello_verify`) — this machine reports Hello unavailable, handled without a prompt and surfaced in the Security panel (A15)
+- [x] Workstation-lock redaction: `WTSRegisterSessionNotification` hidden-window watcher + manual lock; sensitive activities redact to "Private activity" (unit-tested)
+- [x] Security panel (`#/security`): pairing, Hello test, provider permissions with plain-language descriptions persisted via DPAPI settings, export (never includes secrets), two-step erase-all (settings + clients + credentials)
+- [x] Threat model expanded with control mapping (`docs/THREAT_MODEL.md`); SBOM generated (616 components); `npm audit` clean; `cargo audit` deferred to CI (A14)
+- [x] Rust unit tests: canonical-JSON parity with TS, HMAC tamper detection (`cargo test`, 2 passed)
+
 ## Later phases
-Phases 3–6 items are added here as each phase starts; nothing below Phase 2 is claimed.
+Phases 4–6 items are added here as each phase starts; nothing below Phase 3 is claimed.

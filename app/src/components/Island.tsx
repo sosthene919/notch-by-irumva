@@ -131,6 +131,9 @@ export function Island({ state, activities, onEvent, onDismiss, actions }: Props
                   <Button onClick={() => actions.onTimer('stopwatch')}>Stopwatch</Button>
                   <Button onClick={() => actions.onTimer('stop')}>Stop timer</Button>
                 </div>
+                <div className="state-grid">
+                  <Button onClick={() => window.location.assign('#/security')}>Security settings</Button>
+                </div>
               </div>
             )}
             {primary && <Button onClick={() => onDismiss(primary.id)}>Dismiss activity</Button>}
