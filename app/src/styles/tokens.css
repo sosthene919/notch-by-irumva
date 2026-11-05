@@ -1,0 +1,22 @@
+/* Design tokens — the only place hex values may appear (brief section 4).
+   Palette contract verified by scripts/contrast.mjs. */
+:root {
+  --notch-surface: #1D1D1F;
+  --notch-surface-deep: #1A1A1A;
+  --notch-surface-light: #F5F5F7;
+  --notch-on-dark: #F5F5F7;
+  --notch-text-secondary: #AAAAAA;
+  --notch-divider: #E0E0E0;
+  --notch-action: #007AFF;
+  --notch-action-text: #66AFFF; /* lighter tint for small text on dark (contrast script) */
+  --notch-agent: #6A0DAD; /* fills only, never text/icon on dark */
+  --notch-danger: #FF4500;
+
+  --notch-font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --notch-radius-pill: 999px;
+  --notch-space-1: 4px;
+  --notch-space-2: 8px;
+  --notch-space-3: 16px;
+  --notch-space-4: 24px;
+  --notch-focus-ring: 0 0 0 2px var(--notch-surface), 0 0 0 4px var(--notch-action);
+}

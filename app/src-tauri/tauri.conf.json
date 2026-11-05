@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Notch by IRUMVA",
+  "mainBinaryName": "notch",
+  "version": "0.1.0",
+  "identifier": "com.irumva.notch",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Notch by IRUMVA",
+        "width": 440,
+        "height": 360,
+        "x": 0,
+        "y": 8,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "focus": false,
+        "shadow": false,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "IRUMVA",
+    "copyright": "Created by IRUMVA Sosthene. Built with Muse AI and Claude Sonnet.",
+    "category": "Utility",
+    "shortDescription": "A Dynamic Island for Windows 11",
+    "longDescription": "Notch by IRUMVA shows live activities — media, timers, privacy indicators and developer approvals — in a pill at the top of your screen.",
+    "icon": ["icons/icon.png"],
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "./windows/hooks.nsh",
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}
