@@ -48,5 +48,15 @@
 - [ ] OpenCode permission -> approval-card live round-trip with a real tool call (plumbing is unit-tested with fakes and uses the verified reply endpoint; not yet triggered by a live agent tool call)
 - [ ] Antigravity Tier 1 (ACP) approval mirroring — `agy` not installed (A17)
 
+## Phase 5 — Premium
+- [x] File Shelf: native drag-drop onto the island, text parking, 24h auto-expiry, Open/Show in Explorer/Copy actions (`premium/stores.ts` FileShelf, Hub)
+- [x] Clipboard history: text-only, session-only, dedupe, search, pin, paste-as-plain (re-copy), sensitive-look heuristic skip (`ClipboardHistory`, WM_CLIPBOARDUPDATE listener)
+- [x] Quick Launcher: Start Menu shortcut enumeration, search, launch, pinned apps persisted via DPAPI settings
+- [x] Calendar via .ics import (A18): next event + Teams/Zoom/Meet Join button, island activity for the next event
+- [x] System vitals: CPU/RAM/disk via documented Win32, live only while the Extras page is open; world clocks + date
+- [x] Quick actions: screenshot (ms-screenclip:), color picker (EyeDropper where supported, copies hex), dark/light mode (Personalize values), lock PC, Windows Settings
+- [x] Global hotkey: official Tauri global-shortcut plugin, configurable (3 presets) and persisted; in-window Ctrl+Alt+N remains as fallback
+- [ ] Weather, GPU/temperature, OCR, radio toggles — not shipped (A19)
+
 ## Later phases
-Phases 5–6 items are added here as each phase starts; nothing below Phase 4 is claimed.
+Phase 6 items are added here as that phase starts; nothing below Phase 5 is claimed.

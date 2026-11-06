@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Phase 1 minimum: core window control for click-through only.",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-set-ignore-cursor-events"]
+  "permissions": ["core:default", "core:window:allow-set-ignore-cursor-events", "global-shortcut:allow-register", "global-shortcut:allow-unregister", "global-shortcut:allow-unregister-all"]
 }

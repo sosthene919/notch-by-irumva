@@ -630,6 +630,7 @@ mod session_watch {
         fn TranslateMessage(msg: *const Msg) -> i32;
         fn DispatchMessageW(msg: *const Msg) -> isize;
         fn WTSRegisterSessionNotification(hwnd: Hwnd, flags: u32) -> i32;
+        fn AddClipboardFormatListener(hwnd: Hwnd) -> i32;
     }
     #[repr(C)]
     struct WndClass {
@@ -641,10 +642,14 @@ mod session_watch {
     struct Msg { hwnd: Hwnd, message: u32, w: usize, l: isize, time: u32, pt_x: i32, pt_y: i32, private: u32 }
 
     const WM_WTSSESSION_CHANGE: u32 = 0x02B1;
+    const WM_CLIPBOARDUPDATE: u32 = 0x031D;
     const WTS_SESSION_LOCK: usize = 7;
     const WTS_SESSION_UNLOCK: usize = 8;
 
     unsafe extern "system" fn wnd_proc(hwnd: Hwnd, msg: u32, w: usize, l: isize) -> isize {
+        if msg == WM_CLIPBOARDUPDATE {
+            if let Some(app) = APP.get() { let _ = app.emit("notch://clipboard-changed", ()); }
+        }
         if msg == WM_WTSSESSION_CHANGE {
             if let Some(app) = APP.get() {
                 let _ = match w {
@@ -668,6 +673,7 @@ mod session_watch {
             let hwnd = CreateWindowExW(0, class_name.as_ptr(), class_name.as_ptr(), 0, 0, 0, 0, 0, -3, 0, 0, std::ptr::null_mut());
             if hwnd == 0 { return; }
             if WTSRegisterSessionNotification(hwnd, 0) == 0 { return; } // NOTIFY_FOR_THIS_SESSION
+            let _ = AddClipboardFormatListener(hwnd); // Phase 5 clipboard history (documented)
             let mut msg = Msg { hwnd: 0, message: 0, w: 0, l: 0, time: 0, pt_x: 0, pt_y: 0, private: 0 };
             loop {
                 if GetMessageW(&mut msg, 0, 0, 0) <= 0 { break; }

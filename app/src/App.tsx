@@ -25,8 +25,16 @@ import { OpenCodeClient } from './devhub/opencode';
 import { OpenCodeTasks, taskToActivity, type AgentTask } from './devhub/tasks';
 import type { ActivityProvider } from './core/activityManager';
 import { useRef } from 'react';
+import { Hub } from './routes/Hub';
+import { ClipboardHistory, FileShelf, type CalendarEvent } from './premium/stores';
+import { premiumNative, registerGlobalHotkey } from './platform/native';
 
-interface Prefs extends Record<string, unknown> { providers: Record<string, boolean>; recentWorkspaces: string[] }
+interface Prefs extends Record<string, unknown> {
+  providers: Record<string, boolean>;
+  recentWorkspaces: string[];
+  hotkey: string;
+  pinnedApps: { name: string; path: string }[];
+}
 
 export default function App() {
   if (window.location.hash.startsWith('#/styleguide')) return <StyleGuide />;
@@ -43,7 +51,9 @@ function IslandApp() {
     privacy: createPrivacyProvider(),
     ipc: createIpcProvider(),
   }), []);
-  const settings = useMemo(() => new SecureSettings<Prefs>(nativeSecureBridge, { providers: {}, recentWorkspaces: [] }), []);
+  const settings = useMemo(() => new SecureSettings<Prefs>(nativeSecureBridge, {
+    providers: {}, recentWorkspaces: [], hotkey: 'CommandOrControl+Alt+N', pinnedApps: [],
+  }), []);
   const [state, dispatch] = useReducer(reduce, initialState);
   const [locked, setLocked] = useState(false);
   const [route, setRoute] = useState(window.location.hash);
@@ -77,6 +87,28 @@ function IslandApp() {
   const [taskList, setTaskList] = useState<AgentTask[]>([]);
   const [serverStatus, setServerStatus] = useState('Not checked');
   const [recentWorkspaces, setRecentWorkspaces] = useState<string[]>([]);
+
+  // ---- Premium (Phase 5) ----
+  const shelf = useMemo(() => new FileShelf(), []);
+  const clipboardHistory = useMemo(() => new ClipboardHistory(), []);
+  const [hotkey, setHotkey] = useState('CommandOrControl+Alt+N');
+  const [pinnedApps, setPinnedApps] = useState<{ name: string; path: string }[]>([]);
+  const premiumSinkRef = useRef<{ publish: ((a: import('./core/types').Activity) => void) | null; remove: ((id: string) => void) | null }>({ publish: null, remove: null });
+  const premiumSink = useMemo<ActivityProvider>(() => ({
+    id: 'premium',
+    description: 'File Shelf and calendar reminders from the Extras hub.',
+    start(publish, remove) { premiumSinkRef.current = { publish, remove }; },
+    stop() { premiumSinkRef.current = { publish: null, remove: null }; },
+  }), []);
+  const publishShelfSummary = () => {
+    const items = shelf.list();
+    if (items.length === 0) { premiumSinkRef.current.remove?.('shelf'); return; }
+    premiumSinkRef.current.publish?.({
+      id: 'shelf', providerId: 'premium', kind: 'shelf',
+      title: 'File shelf', subtitle: `${items.length} parked item${items.length === 1 ? '' : 's'} (latest: ${items[0]?.name ?? ''})`,
+      priority: 35, startedAt: Date.now(),
+    });
+  };
 
   const ensureTasks = (password: string | null) => {
     if (tasksRef.current) return tasksRef.current;
@@ -127,6 +159,7 @@ function IslandApp() {
       manager.registerProvider(providers.privacy);
       manager.registerProvider(providers.ipc);
       manager.registerProvider(sinkProvider);
+      manager.registerProvider(premiumSink);
     } else {
       manager.registerProvider(demoProvider);
     }
@@ -137,11 +170,47 @@ function IslandApp() {
         if (id !== 'notifications') manager.setProviderEnabled(id, enabled);
       }
       setRecentWorkspaces(prefs.recentWorkspaces ?? []);
+      if (prefs.hotkey) setHotkey(prefs.hotkey);
+      setPinnedApps(prefs.pinnedApps ?? []);
       force((n) => n + 1);
     });
     const expiry = window.setInterval(() => manager.tick(Date.now()), 1000);
     return () => window.clearInterval(expiry);
-  }, [manager, providers, settings, sinkProvider]);
+  }, [manager, providers, settings, sinkProvider, premiumSink]);
+
+  // Phase 5 effects: native drag-drop onto the island (File Shelf),
+  // clipboard history listener, configurable global hotkey.
+  useEffect(() => {
+    if (!isTauri) return;
+    let unDrop: (() => void) | undefined;
+    let unClip: (() => void) | undefined;
+    void (async () => {
+      try {
+        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+        unDrop = await getCurrentWebview().onDragDropEvent((event) => {
+          if (event.payload.type === 'drop') {
+            for (const path of event.payload.paths) shelf.add(path);
+            publishShelfSummary();
+            force((n) => n + 1);
+          }
+        });
+      } catch { /* drag-drop unavailable */ }
+      unClip = await premiumNative.onClipboardChanged(async () => {
+        const text = await premiumNative.clipboardGet();
+        if (text && clipboardHistory.add(text)) force((n) => n + 1);
+      });
+      const current = await premiumNative.clipboardGet();
+      if (current) clipboardHistory.add(current);
+    })();
+    return () => { unDrop?.(); unClip?.(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shelf, clipboardHistory]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void registerGlobalHotkey(hotkey, () => { if (!cancelled) dispatch({ type: 'HOTKEY' }); });
+    return () => { cancelled = true; };
+  }, [hotkey]);
 
   // Developer Hub forwarding: when an approval/review reaches a terminal
   // state in the UI core, answer the waiting source exactly once.
@@ -206,7 +275,7 @@ function IslandApp() {
   const onProviderToggle = (id: string, enabled: boolean) => {
     manager.setProviderEnabled(id, enabled);
     const map = Object.fromEntries(manager.providerList().map((p) => [p.id, p.enabled]));
-    void settings.save({ providers: map, recentWorkspaces }).catch(() => {});
+    void settings.save({ providers: map, recentWorkspaces, hotkey, pinnedApps }).catch(() => {});
     force((n) => n + 1);
   };
 
@@ -261,7 +330,7 @@ function IslandApp() {
     const recents = [input.workspace, ...recentWorkspaces.filter((w) => w !== input.workspace)].slice(0, 5);
     setRecentWorkspaces(recents);
     const map = Object.fromEntries(manager.providerList().map((p) => [p.id, p.enabled]));
-    void settings.save({ providers: map, recentWorkspaces: recents }).catch(() => {});
+    void settings.save({ providers: map, recentWorkspaces: recents, hotkey, pinnedApps }).catch(() => {});
     const tasks = tasksRef.current ?? ensureTasks(null);
     // If the client was created without the managed password, refresh it.
     void (async () => {
@@ -275,6 +344,27 @@ function IslandApp() {
       }
       await tasks.start(input);
     })();
+  };
+
+  const savePrefs = (patch: Partial<Prefs>) => {
+    const map = Object.fromEntries(manager.providerList().map((p) => [p.id, p.enabled]));
+    void settings.save({ providers: map, recentWorkspaces, hotkey, pinnedApps, ...patch }).catch(() => {});
+  };
+  const onHotkeyChange = (value: string) => { setHotkey(value); savePrefs({ hotkey: value }); };
+  const onPinnedChange = (apps: { name: string; path: string }[]) => { setPinnedApps(apps); savePrefs({ pinnedApps: apps }); };
+  const onCopyText = (text: string) => {
+    void premiumNative.clipboardSet(text);
+    clipboardHistory.add(text);
+    force((n) => n + 1);
+  };
+  const onCalendarNext = (event: CalendarEvent | null) => {
+    if (!event) { premiumSinkRef.current.remove?.('calendar-next'); return; }
+    premiumSinkRef.current.publish?.({
+      id: 'calendar-next', providerId: 'premium', kind: 'calendar',
+      title: event.title, subtitle: `Starts ${new Date(event.start).toLocaleString()}`,
+      priority: 55, startedAt: Date.now(),
+      expiresAt: Math.max(event.start, Date.now() + 60_000),
+    });
   };
 
   const send = (type: IslandEvent['type']) => dispatch({ type } as IslandEvent);
@@ -292,6 +382,13 @@ function IslandApp() {
 
   if (route.startsWith('#/security')) {
     return <SecurityPanel manager={manager} bridge={nativeSecureBridge} locked={locked} onManualLock={setLocked} onProviderToggle={onProviderToggle} />;
+  }
+  if (route.startsWith('#/hub')) {
+    return (
+      <Hub shelf={shelf} clipboard={clipboardHistory} hotkey={hotkey} pinnedApps={pinnedApps}
+        onHotkeyChange={onHotkeyChange} onPinnedChange={onPinnedChange}
+        onCalendarNext={onCalendarNext} onCopyText={onCopyText} onShelfChange={publishShelfSummary} />
+    );
   }
   if (route.startsWith('#/devhub')) {
     return (

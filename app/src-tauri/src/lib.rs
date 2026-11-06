@@ -6,6 +6,7 @@
 //! no taskbar button, no Alt+Tab entry). Providers arrive in Phase 2.
 
 mod native;
+mod premium;
 mod security;
 
 #[cfg(windows)]
@@ -32,6 +33,7 @@ mod window_style {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             native::media_get,
             native::media_control,
@@ -52,7 +54,19 @@ pub fn run() {
             security::approval_respond,
             security::review_respond,
             security::opencode_server_start,
-            security::opencode_server_password
+            security::opencode_server_password,
+            premium::vitals_get,
+            premium::perf_info,
+            premium::clipboard_get_text,
+            premium::clipboard_set_text,
+            premium::launcher_apps,
+            premium::launch_path,
+            premium::open_url,
+            premium::reveal_path,
+            premium::lock_workstation,
+            premium::take_screenshot,
+            premium::set_dark_mode,
+            premium::read_text_file
         ])
         .setup(|app| {
             security::init_security(app.handle());

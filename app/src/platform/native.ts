@@ -83,6 +83,37 @@ export const devhubNative = {
   onReviewPropose: (cb: (raw: unknown) => void) => listenPayload('notch://review-propose', cb),
 };
 
+export interface Vitals { cpuPercent: number; ramPercent: number; ramTotalGb: number; diskFreeGb: number; diskTotalGb: number }
+export interface PerfInfo { workingSetMb: number; privateMb: number }
+
+export const premiumNative = {
+  vitals: () => invoke<Vitals>('vitals_get'),
+  perf: () => invoke<PerfInfo>('perf_info'),
+  clipboardGet: () => invoke<string | null>('clipboard_get_text'),
+  clipboardSet: async (text: string) => (await invoke<boolean>('clipboard_set_text', { text })) ?? false,
+  launcherApps: () => invoke<{ name: string; path: string }[]>('launcher_apps'),
+  launchPath: async (path: string) => (await invoke<boolean>('launch_path', { path })) ?? false,
+  openUrl: async (url: string) => (await invoke<boolean>('open_url', { url })) ?? false,
+  revealPath: async (path: string) => (await invoke<boolean>('reveal_path', { path })) ?? false,
+  lockWorkstation: async () => (await invoke<boolean>('lock_workstation')) ?? false,
+  screenshot: async () => (await invoke<boolean>('take_screenshot')) ?? false,
+  setDarkMode: async (dark: boolean) => (await invoke<boolean>('set_dark_mode', { dark })) ?? false,
+  readTextFile: (path: string) => invoke<string | null>('read_text_file', { path }),
+  onClipboardChanged: (cb: () => void) => listen('notch://clipboard-changed', cb),
+};
+
+/** Global hotkey via the official Tauri global-shortcut plugin.
+ *  Returns false when registration fails (e.g. another app owns it). */
+export async function registerGlobalHotkey(shortcut: string, cb: () => void): Promise<boolean> {
+  if (!isTauri) return false;
+  try {
+    const mod = await import('@tauri-apps/plugin-global-shortcut');
+    await mod.unregisterAll().catch(() => {});
+    await mod.register(shortcut, (event) => { if (event.state === 'Pressed') cb(); });
+    return true;
+  } catch { return false; }
+}
+
 export const native = {
   mediaGet: () => invoke<MediaState | null>('media_get'),
   mediaControl: async (action: 'play' | 'pause' | 'toggle' | 'next' | 'previous'): Promise<boolean> =>
