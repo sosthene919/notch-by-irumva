@@ -133,6 +133,7 @@ export function Island({ state, activities, onEvent, onDismiss, actions }: Props
                 </div>
                 <div className="state-grid">
                   <Button onClick={() => window.location.assign('#/security')}>Security settings</Button>
+                  <Button onClick={() => window.location.assign('#/devhub')}>Developer Hub</Button>
                 </div>
               </div>
             )}

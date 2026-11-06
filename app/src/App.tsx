@@ -14,12 +14,19 @@ import { createVolumeProvider } from './providers/volume';
 import { createPrivacyProvider } from './providers/privacy';
 import { notificationsProvider } from './providers/notifications';
 import { createIpcProvider } from './providers/ipc';
-import { nativeSecureBridge, onSessionLock } from './platform/native';
+import { nativeSecureBridge, onSessionLock, devhubNative } from './platform/native';
 import { SecureSettings } from './security/secureSettings';
 import { redactForLock } from './security/lockPolicy';
 import { isTauri } from './platform/window';
+import { ApprovalManager, holdToConfirmGate, type ApprovalDecision, type StrongGate } from './core/approvals';
+import { ReviewManager, validateReview, type ReviewDecision } from './core/reviews';
+import { DevHub } from './routes/DevHub';
+import { OpenCodeClient } from './devhub/opencode';
+import { OpenCodeTasks, taskToActivity, type AgentTask } from './devhub/tasks';
+import type { ActivityProvider } from './core/activityManager';
+import { useRef } from 'react';
 
-interface Prefs extends Record<string, unknown> { providers: Record<string, boolean> }
+interface Prefs extends Record<string, unknown> { providers: Record<string, boolean>; recentWorkspaces: string[] }
 
 export default function App() {
   if (window.location.hash.startsWith('#/styleguide')) return <StyleGuide />;
@@ -36,11 +43,64 @@ function IslandApp() {
     privacy: createPrivacyProvider(),
     ipc: createIpcProvider(),
   }), []);
-  const settings = useMemo(() => new SecureSettings<Prefs>(nativeSecureBridge, { providers: {} }), []);
+  const settings = useMemo(() => new SecureSettings<Prefs>(nativeSecureBridge, { providers: {}, recentWorkspaces: [] }), []);
   const [state, dispatch] = useReducer(reduce, initialState);
   const [locked, setLocked] = useState(false);
   const [route, setRoute] = useState(window.location.hash);
   const [, force] = useState(0);
+
+  // ---- Developer Hub (Phase 4) ----
+  const holdGate = useMemo(() => holdToConfirmGate(1200), []);
+  const gate = useMemo<StrongGate>(() => ({
+    verify: async (req) => {
+      const r = await nativeSecureBridge.helloVerify(`Allow ${req.agent} to run: ${req.action.slice(0, 80)}`);
+      if (r.ok) return true;
+      if (r.status.startsWith('hello-unavailable')) return holdGate.verify(req);
+      return false;
+    },
+  }), [holdGate]);
+  const approvals = useMemo(() => new ApprovalManager(gate), [gate]);
+  const reviews = useMemo(() => new ReviewManager(), []);
+  const sinkRef = useRef<{ publish: ((a: import('./core/types').Activity) => void) | null; remove: ((id: string) => void) | null }>({ publish: null, remove: null });
+  const sinkProvider = useMemo<ActivityProvider>(() => ({
+    id: 'opencode',
+    description: 'OpenCode agent tasks started from the Developer Hub, including their permission requests.',
+    start(publish, remove) { sinkRef.current = { publish, remove }; },
+    stop() { sinkRef.current = { publish: null, remove: null }; },
+  }), []);
+  const clientRef = useRef<OpenCodeClient | null>(null);
+  const tasksRef = useRef<OpenCodeTasks | null>(null);
+  const permMapRef = useRef(new Map<string, { sessionId: string; permissionId: string; taskId: string }>());
+  const forwardedRef = useRef(new Set<string>());
+  const reviewCommentRef = useRef(new Map<string, string>());
+  const reviewForwardedRef = useRef(new Set<string>());
+  const [taskList, setTaskList] = useState<AgentTask[]>([]);
+  const [serverStatus, setServerStatus] = useState('Not checked');
+  const [recentWorkspaces, setRecentWorkspaces] = useState<string[]>([]);
+
+  const ensureTasks = (password: string | null) => {
+    if (tasksRef.current) return tasksRef.current;
+    const client = new OpenCodeClient('http://127.0.0.1:4096', password);
+    clientRef.current = client;
+    const tasks = new OpenCodeTasks(client, {
+      onTask: (t) => {
+        setTaskList(tasks.list());
+        const activity = taskToActivity(t);
+        if (t.status === 'done' || t.status === 'failed' || t.status === 'interrupted') activity.expiresAt = Date.now() + 60_000;
+        sinkRef.current.publish?.(activity);
+        force((n) => n + 1);
+      },
+      onPermission: (task, p) => {
+        permMapRef.current.set(`oc-${p.id}`, { sessionId: task.id, permissionId: p.id, taskId: task.id });
+        void approvals.create({
+          id: `oc-${p.id}`, source: 'opencode', agent: `OpenCode ${task.agent} (${p.action})`,
+          action: p.resources.join(' ') || p.action, cwd: task.workspace, workspace: task.workspace,
+        });
+      },
+    });
+    tasksRef.current = tasks;
+    return tasks;
+  };
 
   useEffect(() => {
     const onHash = () => setRoute(window.location.hash);
@@ -66,6 +126,7 @@ function IslandApp() {
       manager.registerProvider(providers.volume);
       manager.registerProvider(providers.privacy);
       manager.registerProvider(providers.ipc);
+      manager.registerProvider(sinkProvider);
     } else {
       manager.registerProvider(demoProvider);
     }
@@ -75,11 +136,63 @@ function IslandApp() {
       for (const [id, enabled] of Object.entries(prefs.providers)) {
         if (id !== 'notifications') manager.setProviderEnabled(id, enabled);
       }
+      setRecentWorkspaces(prefs.recentWorkspaces ?? []);
       force((n) => n + 1);
     });
     const expiry = window.setInterval(() => manager.tick(Date.now()), 1000);
     return () => window.clearInterval(expiry);
-  }, [manager, providers, settings]);
+  }, [manager, providers, settings, sinkProvider]);
+
+  // Developer Hub forwarding: when an approval/review reaches a terminal
+  // state in the UI core, answer the waiting source exactly once.
+  useEffect(() => {
+    approvals.onChange = () => {
+      force((n) => n + 1);
+      for (const req of approvals.all()) {
+        if (req.status === 'pending' || forwardedRef.current.has(req.id)) continue;
+        forwardedRef.current.add(req.id);
+        const allowed = req.status === 'allowed-once' || req.status === 'allowed-session' || req.status === 'auto-allowed-session';
+        if (req.source === 'bridge') {
+          void devhubNative.approvalRespond(req.id, req.actionHash, req.status === 'denied' || req.status === 'expired' ? 'deny' : req.status === 'allowed-session' ? 'allow-session' : 'allow-once');
+        } else if (req.source === 'opencode') {
+          const mapping = permMapRef.current.get(req.id);
+          if (mapping && clientRef.current) {
+            void clientRef.current.replyPermission(mapping.sessionId, mapping.permissionId, allowed ? 'once' : 'reject')
+              .catch(() => {})
+              .finally(() => tasksRef.current?.permissionResolved(mapping.taskId));
+          }
+        }
+      }
+    };
+    reviews.onChange = () => {
+      force((n) => n + 1);
+      for (const review of reviews.pending()) void review;
+      // decided reviews are forwarded in onReviewDecision (comment lives there)
+    };
+    if (!isTauri) return;
+    let un1: (() => void) | undefined; let un2: (() => void) | undefined;
+    void devhubNative.onApprovalRequest((a) => {
+      void approvals.create({
+        id: a.requestId, source: 'bridge', agent: a.agent, action: a.action,
+        target: a.target || undefined, cwd: a.cwd || undefined, timeoutMs: a.timeoutMs,
+      });
+    }).then((u) => { un1 = u; });
+    void devhubNative.onReviewPropose((raw) => {
+      const review = validateReview(raw);
+      if (review) reviews.propose(review);
+    }).then((u) => { un2 = u; });
+    // Auto-connect to an already-running OpenCode server if we hold its password.
+    void (async () => {
+      const password = await devhubNative.opencodeServerPassword();
+      const probe = new OpenCodeClient('http://127.0.0.1:4096', password);
+      const health = await probe.health();
+      if (health === 'running') { ensureTasks(password); setServerStatus('Running at 127.0.0.1:4096'); }
+      else if (health === 'auth-required') setServerStatus('Server running, but its password is unknown. Start it from Notch so credentials are managed.');
+      else setServerStatus('Not running');
+    })();
+    return () => { un1?.(); un2?.(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approvals, reviews]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -93,8 +206,75 @@ function IslandApp() {
   const onProviderToggle = (id: string, enabled: boolean) => {
     manager.setProviderEnabled(id, enabled);
     const map = Object.fromEntries(manager.providerList().map((p) => [p.id, p.enabled]));
-    void settings.save({ providers: map }).catch(() => {});
+    void settings.save({ providers: map, recentWorkspaces }).catch(() => {});
     force((n) => n + 1);
+  };
+
+  const onApprovalDecision = async (id: string, decision: ApprovalDecision): Promise<string | undefined> => {
+    const req = approvals.get(id);
+    if (!req) return 'This request is no longer available.';
+    const result = await approvals.respond(id, req.actionHash, decision);
+    if (result.ok) return undefined;
+    if (result.error === 'strong-gate-failed') return 'Confirmation failed. For high-risk actions, hold the Allow button for 1.2 seconds (Windows Hello is unavailable on this machine).';
+    if (result.error === 'expired') return 'This request expired and was denied.';
+    return `Could not record that decision (${result.error}).`;
+  };
+
+  const onReviewDecision = (id: string, decision: ReviewDecision, comment: string) => {
+    reviewCommentRef.current.set(id, comment);
+    const result = reviews.decide(id, decision);
+    if (result.ok && !reviewForwardedRef.current.has(id)) {
+      reviewForwardedRef.current.add(id);
+      const status = reviews.get(id)?.status;
+      const mapped = status === 'approved' ? 'approve' : status === 'changes-requested' ? 'request-changes' : status === 'open-diff' ? 'open-diff' : 'reject';
+      void devhubNative.reviewRespond(id, mapped, comment);
+    }
+    force((n) => n + 1);
+  };
+
+  const onStartServer = async (workspace: string) => {
+    setServerStatus('Starting…');
+    const res = await devhubNative.opencodeServerStart(workspace);
+    if (res?.error === 'opencode-not-found') {
+      setServerStatus('OpenCode was not found on this PC. Install OpenCode, then try again.');
+      return;
+    }
+    const password = res?.password ?? (await devhubNative.opencodeServerPassword());
+    const probe = new OpenCodeClient('http://127.0.0.1:4096', password);
+    // The server can take several seconds to boot; poll instead of guessing.
+    let health = await probe.health();
+    for (let i = 0; i < 9 && health === 'down'; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      health = await probe.health();
+    }
+    if (health === 'running') {
+      clientRef.current = null; tasksRef.current = null;
+      ensureTasks(password);
+      setServerStatus(res?.alreadyRunning ? 'Already running at 127.0.0.1:4096' : 'Started at 127.0.0.1:4096 (loopback only, password in Credential Manager)');
+    } else {
+      setServerStatus('Server did not answer yet. Give it a few seconds, then press Start task.');
+    }
+    force((n) => n + 1);
+  };
+
+  const onStartTask = (input: { prompt: string; workspace: string; agent: string; model?: { providerID: string; id: string } }) => {
+    const recents = [input.workspace, ...recentWorkspaces.filter((w) => w !== input.workspace)].slice(0, 5);
+    setRecentWorkspaces(recents);
+    const map = Object.fromEntries(manager.providerList().map((p) => [p.id, p.enabled]));
+    void settings.save({ providers: map, recentWorkspaces: recents }).catch(() => {});
+    const tasks = tasksRef.current ?? ensureTasks(null);
+    // If the client was created without the managed password, refresh it.
+    void (async () => {
+      if (!clientRef.current) return;
+      const health = await clientRef.current.health().catch(() => 'down' as const);
+      if (health === 'auth-required') {
+        const password = await devhubNative.opencodeServerPassword();
+        clientRef.current = null; tasksRef.current = null;
+        await ensureTasks(password).start(input);
+        return;
+      }
+      await tasks.start(input);
+    })();
   };
 
   const send = (type: IslandEvent['type']) => dispatch({ type } as IslandEvent);
@@ -112,6 +292,19 @@ function IslandApp() {
 
   if (route.startsWith('#/security')) {
     return <SecurityPanel manager={manager} bridge={nativeSecureBridge} locked={locked} onManualLock={setLocked} onProviderToggle={onProviderToggle} />;
+  }
+  if (route.startsWith('#/devhub')) {
+    return (
+      <DevHub
+        approvals={approvals} reviews={reviews} tasks={taskList} serverStatus={serverStatus}
+        recentWorkspaces={recentWorkspaces}
+        onStartTask={onStartTask} onStartServer={onStartServer}
+        onAbortTask={(id) => { void tasksRef.current?.abort(id); }}
+        onRerunTask={(id) => { void tasksRef.current?.rerun(id); }}
+        onApprovalDecision={onApprovalDecision} onReviewDecision={onReviewDecision}
+        onHoldStart={(id) => holdGate.beginHold(id)} onHoldEnd={() => holdGate.endHold()}
+      />
+    );
   }
 
   return (

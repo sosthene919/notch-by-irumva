@@ -384,18 +384,115 @@ fn handle_ipc(msg: &serde_json::Value) -> serde_json::Value {
                 || !kind.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
                 return err("invalid-payload");
             }
+            let expires = payload.get("expiresInSeconds").and_then(|v| v.as_i64()).unwrap_or(0).clamp(0, 3600);
+            let client_given_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
+            let activity_id = if !client_given_id.is_empty() && client_given_id.chars().count() <= 80
+                && client_given_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+                client_given_id.to_string()
+            } else { format!("ipc-{client_id}-{}", hex(&random_bytes(4))) };
             if let Some(app) = APP.get() {
                 let _ = app.emit("notch://ipc-activity", serde_json::json!({
-                    "id": format!("ipc-{client_id}-{}", hex(&random_bytes(4))),
+                    "id": activity_id,
                     "kind": kind, "title": title, "subtitle": subtitle, "priority": priority,
+                    "expiresInSeconds": expires,
                 }));
             }
             serde_json::json!({"ok": true})
+        }
+        "approval.request" => {
+            if let Err(e) = check_auth(msg) { return err(e); }
+            let payload = msg.get("payload").cloned().unwrap_or_default();
+            let (Some(agent), Some(action)) = (str_field(&payload, "agent", 80), str_field(&payload, "action", 500)) else { return err("invalid-payload") };
+            let target = str_field(&payload, "target", 260).unwrap_or_default();
+            let cwd = str_field(&payload, "cwd", 260).unwrap_or_default();
+            let timeout_ms = payload.get("timeoutMs").and_then(|v| v.as_i64()).unwrap_or(120_000).clamp(10_000, 300_000);
+            let request_id = hex(&random_bytes(8));
+            let action_hash = sha256_hex(canonical(&serde_json::json!({
+                "action": action, "agent": agent, "cwd": cwd, "target": target
+            })).as_bytes());
+            if let Some(app) = APP.get() {
+                let _ = app.emit("notch://approval-request", serde_json::json!({
+                    "requestId": request_id, "source": "bridge", "agent": agent,
+                    "action": action, "target": target, "cwd": cwd,
+                    "actionHash": action_hash, "timeoutMs": timeout_ms,
+                }));
+            }
+            match wait_for_decision(request_id, action_hash, timeout_ms) {
+                Some(decision) => serde_json::json!({"ok": true, "decision": decision}),
+                None => serde_json::json!({"ok": true, "decision": "expired"}), // fail closed: treat as deny
+            }
+        }
+        "review.propose" => {
+            if let Err(e) = check_auth(msg) { return err(e); }
+            let payload = msg.get("payload").cloned().unwrap_or_default();
+            let Some(review_id) = str_field(&payload, "id", 80) else { return err("invalid-payload") };
+            if !review_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') { return err("invalid-payload"); }
+            let timeout_ms = payload.get("timeoutMs").and_then(|v| v.as_i64()).unwrap_or(180_000).clamp(10_000, 300_000);
+            if let Some(app) = APP.get() {
+                let _ = app.emit("notch://review-propose", payload.clone());
+            }
+            match wait_for_decision(format!("review:{review_id}"), String::new(), timeout_ms) {
+                Some(raw) => {
+                    let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap_or_default();
+                    serde_json::json!({"ok": true, "decision": parsed.get("decision"), "comment": parsed.get("comment")})
+                }
+                None => serde_json::json!({"ok": true, "decision": "expired"}),
+            }
         }
         _ => err("unknown-type"),
     }
 }
 fn err(e: &str) -> serde_json::Value { serde_json::json!({"ok": false, "error": e}) }
+
+// ---------- approval / review request-response over the pipe ----------
+// A paired client sends approval.request or review.propose and keeps the
+// connection open. Rust emits an event to the UI, then blocks this
+// connection's handler (bounded by the request timeout) until the UI
+// answers through the approval_respond / review_respond commands.
+// Expired or unanswered requests resolve as deny (fail closed).
+
+struct PendingDecision { action_hash: String, sender: std::sync::mpsc::Sender<String> }
+fn pending_decisions() -> &'static Mutex<HashMap<String, PendingDecision>> {
+    static P: OnceLock<Mutex<HashMap<String, PendingDecision>>> = OnceLock::new();
+    P.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn wait_for_decision(key: String, action_hash: String, timeout_ms: i64) -> Option<String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    pending_decisions().lock().unwrap().insert(key.clone(), PendingDecision { action_hash, sender: tx });
+    let result = rx.recv_timeout(std::time::Duration::from_millis(timeout_ms.max(1000) as u64)).ok();
+    pending_decisions().lock().unwrap().remove(&key);
+    result
+}
+
+#[tauri::command]
+pub fn approval_respond(request_id: String, action_hash: String, decision: String) -> bool {
+    if !matches!(decision.as_str(), "allow-once" | "allow-session" | "deny") { return false; }
+    let map = pending_decisions().lock().unwrap();
+    match map.get(&request_id) {
+        Some(p) if const_eq(p.action_hash.as_bytes(), action_hash.as_bytes()) => {
+            p.sender.send(decision).is_ok()
+        }
+        _ => false,
+    }
+}
+
+#[tauri::command]
+pub fn review_respond(review_id: String, decision: String, comment: String) -> bool {
+    if !matches!(decision.as_str(), "approve" | "request-changes" | "reject" | "open-diff") { return false; }
+    if comment.chars().count() > 1000 { return false; }
+    let key = format!("review:{review_id}");
+    let map = pending_decisions().lock().unwrap();
+    match map.get(&key) {
+        Some(p) => p.sender.send(serde_json::json!({ "decision": decision, "comment": comment }).to_string()).is_ok(),
+        None => false,
+    }
+}
+
+fn str_field(v: &serde_json::Value, key: &str, max: usize) -> Option<String> {
+    let s = v.get(key)?.as_str()?.trim();
+    if s.is_empty() || s.chars().count() > max { None } else { Some(s.to_string()) }
+}
 
 #[cfg(test)]
 mod tests {
@@ -579,6 +676,80 @@ mod session_watch {
             }
         });
     }
+}
+
+// ---------- OpenCode server lifecycle (Phase 4) ----------
+// Verified against the locally installed OpenCode v2 server's own
+// OpenAPI document (GET /openapi.json on the server). See docs/ANTIGRAVITY.md
+// and ASSUMPTIONS for the version-specific contract.
+
+#[derive(Serialize)]
+pub struct OpenCodeServerStatus {
+    started: bool,
+    already_running: bool,
+    password: Option<String>,
+    error: Option<String>,
+}
+
+fn opencode_health_ok() -> bool {
+    use std::io::Write;
+    let addr: std::net::SocketAddr = ([127, 0, 0, 1], 4096).into();
+    let Ok(mut stream) = std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(300)) else { return false };
+    let _ = stream.set_read_timeout(Some(std::time::Duration::from_millis(500)));
+    if stream.write_all(b"GET /api/info HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n").is_err() { return false; }
+    let mut buf = [0u8; 64];
+    use std::io::Read;
+    matches!(stream.read(&mut buf), Ok(n) if n >= 12 && &buf[..12] == b"HTTP/1.1 401" || n >= 12 && &buf[..12] == b"HTTP/1.1 200")
+}
+
+fn find_opencode() -> Option<PathBuf> {
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        for rel in [r"npm\node_modules\@opencode\cli\bin\opencode.exe", r"npm\node_modules\@opencode\cli-windows-x64\bin\opencode.exe"] {
+            let p = PathBuf::from(&appdata).join(rel);
+            if p.exists() { return Some(p); }
+        }
+    }
+    if let Ok(path) = std::env::var("PATH") {
+        for dir in std::env::split_paths(&path) {
+            let p = dir.join("opencode.exe");
+            if p.exists() { return Some(p); }
+        }
+    }
+    None
+}
+
+#[tauri::command]
+pub fn opencode_server_start(directory: String) -> OpenCodeServerStatus {
+    if opencode_health_ok() {
+        return OpenCodeServerStatus { started: false, already_running: true, password: secret_get("opencode-server-password".into()), error: None };
+    }
+    let Some(exe) = find_opencode() else {
+        return OpenCodeServerStatus { started: false, already_running: false, password: None, error: Some("opencode-not-found".into()) };
+    };
+    let password = hex(&random_bytes(24));
+    if !secret_set("opencode-server-password".into(), password.clone()) {
+        return OpenCodeServerStatus { started: false, already_running: false, password: None, error: Some("credential-store-failed".into()) };
+    }
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let mut cmd = std::process::Command::new(exe);
+    cmd.args(["serve", "--hostname", "127.0.0.1", "--port", "4096"])
+        .env("OPENCODE_SERVER_PASSWORD", &password)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .creation_flags(CREATE_NO_WINDOW);
+    let dir = PathBuf::from(&directory);
+    if dir.is_dir() { cmd.current_dir(dir); }
+    match cmd.spawn() {
+        Ok(_) => OpenCodeServerStatus { started: true, already_running: false, password: Some(password), error: None },
+        Err(e) => OpenCodeServerStatus { started: false, already_running: false, password: None, error: Some(e.to_string()) },
+    }
+}
+
+#[tauri::command]
+pub fn opencode_server_password() -> Option<String> {
+    secret_get("opencode-server-password".into())
 }
 
 pub fn init_security(app: &AppHandle) {

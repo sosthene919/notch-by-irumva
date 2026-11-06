@@ -16,7 +16,11 @@ export function validateIpcPayload(raw: unknown): Activity | null {
   const subtitle = typeof p.subtitle === 'string' ? p.subtitle.slice(0, 200) : undefined;
   const priority = typeof p.priority === 'number' ? Math.min(100, Math.max(0, p.priority)) : 50;
   const id = typeof p.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(p.id) ? p.id : `ipc-${Date.now()}`;
-  return { id, providerId: 'ipc', kind, title, subtitle, priority, startedAt: Date.now(), sensitive: true };
+  const expiresInSeconds = typeof p.expiresInSeconds === 'number' ? Math.min(3600, Math.max(0, p.expiresInSeconds)) : 0;
+  return {
+    id, providerId: 'ipc', kind, title, subtitle, priority, startedAt: Date.now(), sensitive: true,
+    ...(expiresInSeconds > 0 ? { expiresAt: Date.now() + expiresInSeconds * 1000 } : {}),
+  };
 }
 
 /**

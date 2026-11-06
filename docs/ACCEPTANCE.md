@@ -37,5 +37,16 @@
 - [x] Threat model expanded with control mapping (`docs/THREAT_MODEL.md`); SBOM generated (616 components); `npm audit` clean; `cargo audit` deferred to CI (A14)
 - [x] Rust unit tests: canonical-JSON parity with TS, HMAC tamper detection (`cargo test`, 2 passed)
 
+## Phase 4 — Developer Hub
+- [x] Approval core: request bound to ID + SHA-256 of the exact action, single-use, expiring, session-allow by identical hash only, audit log (200 cap), risk classification (destructive/network/credentials/outside-workspace = high; allowlisted test/build = low) (`app/src/core/approvals.ts`, 36 TS tests incl. hold-gate regression)
+- [x] Strong gate: Windows Hello when available, otherwise hold-to-confirm 1.2s; a failed gate leaves the request answerable, Deny never needs the gate
+- [x] Pipe approval/review request-response: paired clients block (bounded) until the island answers; timeouts resolve as deny (`security.rs` `approval.request`/`review.propose`, `approval_respond`/`review_respond` with hash re-verification)
+- [x] Notch Bridge extension (`/extension`): diagnostics, task/build status, debug sessions, terminal commands (feature-detected), git changes; pair command (SecretStorage), approval + review commands; compiles (`tsc`) and protocol tests pass (2/2); works in VS Code and Antigravity IDE (Tier 2, `docs/ANTIGRAVITY.md`)
+- [x] Code review cards: files +/-, summary, test status; Approve / Request changes (comment returned to the agent) / Open diff / Reject, single-decision (`app/src/core/reviews.ts`)
+- [x] OpenCode Quick Task: composer echoes workspace before running; task lifecycle queued -> running -> needs-approval -> done/failed/interrupted with Abort/Re-run; server start is opt-in, loopback-only, password in Credential Manager (`app/src/devhub/`)
+- [x] Live E2E (2026-11-06, 7/7): bridge pairing, low-risk allow-once, high-risk hold-to-confirm, review request-changes with comment, Notch-started OpenCode server, real Quick Task reaching `done`
+- [ ] OpenCode permission -> approval-card live round-trip with a real tool call (plumbing is unit-tested with fakes and uses the verified reply endpoint; not yet triggered by a live agent tool call)
+- [ ] Antigravity Tier 1 (ACP) approval mirroring — `agy` not installed (A17)
+
 ## Later phases
-Phases 4–6 items are added here as each phase starts; nothing below Phase 3 is claimed.
+Phases 5–6 items are added here as each phase starts; nothing below Phase 4 is claimed.

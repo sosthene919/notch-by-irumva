@@ -58,6 +58,31 @@ export async function onSessionLock(cb: (locked: boolean) => void): Promise<() =
   } catch { return () => {}; }
 }
 
+export interface OpenCodeServerStatus { started: boolean; alreadyRunning: boolean; password: string | null; error: string | null }
+export interface IncomingApproval {
+  requestId: string; source: 'bridge'; agent: string; action: string;
+  target?: string; cwd?: string; actionHash: string; timeoutMs: number;
+}
+
+async function listenPayload<T>(event: string, cb: (payload: T) => void): Promise<() => void> {
+  if (!isTauri) return () => {};
+  try {
+    const { listen } = await import('@tauri-apps/api/event');
+    return await listen<T>(event, (e) => cb(e.payload));
+  } catch { return () => {}; }
+}
+
+export const devhubNative = {
+  opencodeServerStart: (directory: string) => invoke<OpenCodeServerStatus>('opencode_server_start', { directory }),
+  opencodeServerPassword: () => invoke<string | null>('opencode_server_password'),
+  approvalRespond: async (requestId: string, actionHash: string, decision: string) =>
+    (await invoke<boolean>('approval_respond', { requestId, actionHash, decision })) ?? false,
+  reviewRespond: async (reviewId: string, decision: string, comment: string) =>
+    (await invoke<boolean>('review_respond', { reviewId, decision, comment })) ?? false,
+  onApprovalRequest: (cb: (a: IncomingApproval) => void) => listenPayload('notch://approval-request', cb),
+  onReviewPropose: (cb: (raw: unknown) => void) => listenPayload('notch://review-propose', cb),
+};
+
 export const native = {
   mediaGet: () => invoke<MediaState | null>('media_get'),
   mediaControl: async (action: 'play' | 'pause' | 'toggle' | 'next' | 'previous'): Promise<boolean> =>

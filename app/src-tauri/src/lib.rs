@@ -48,7 +48,11 @@ pub fn run() {
             security::hello_verify,
             security::pairing_start,
             security::data_export,
-            security::data_erase
+            security::data_erase,
+            security::approval_respond,
+            security::review_respond,
+            security::opencode_server_start,
+            security::opencode_server_password
         ])
         .setup(|app| {
             security::init_security(app.handle());

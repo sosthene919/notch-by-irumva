@@ -62,6 +62,8 @@ button, input { font: inherit; }
 .styleguide .card { background: var(--notch-surface); color: var(--notch-on-dark); }
 .state-grid { display: flex; flex-wrap: wrap; gap: var(--notch-space-2); align-items: center; }
 .pairing-code { font-size: 28px; letter-spacing: 6px; }
+.action-text { background: var(--notch-surface-deep); color: var(--notch-on-dark); padding: var(--notch-space-2); border-radius: 8px; white-space: pre-wrap; word-break: break-word; font-size: 12px; max-height: 160px; overflow: auto; }
+input, select { font: inherit; min-height: 32px; }
 textarea { width: 100%; font: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
