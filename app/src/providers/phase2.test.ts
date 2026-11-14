@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 import type { Activity } from '../core/types';
 import { createNowPlayingProvider, type MediaSource } from './nowPlaying';
 import { createTimerProvider } from './timers';
@@ -23,7 +23,7 @@ const media = (over: Partial<import('../platform/native').MediaState> = {}) => (
 describe('now playing provider (fake source)', () => {
   it('publishes the current session and removes it when playback stops', async () => {
     let current = media();
-    const source: MediaSource = { get: async () => current, control: async () => true, subscribe: () => () => {} };
+    const source: MediaSource = { get: async () => current, sessions: async () => [], control: async () => true, seek: async () => true, setShuffle: async () => true, setRepeat: async () => true, subscribe: () => () => {} };
     const p = createNowPlayingProvider(source);
     const h = harness();
     await p.start(h.publish, h.remove);
@@ -36,9 +36,9 @@ describe('now playing provider (fake source)', () => {
   });
   it('passes transport controls through to the source', async () => {
     const control = vi.fn(async () => true);
-    const p = createNowPlayingProvider({ get: async () => null, control, subscribe: () => () => {} });
+    const p = createNowPlayingProvider({ get: async () => null, sessions: async () => [], control, seek: async () => true, setShuffle: async () => true, setRepeat: async () => true, subscribe: () => () => {} });
     await p.control('next');
-    expect(control).toHaveBeenCalledWith('next');
+    expect(control).toHaveBeenCalledWith('next', null);
   });
 });
 
@@ -122,3 +122,4 @@ describe('privacy provider (fake source)', () => {
     p.stop();
   });
 });
+

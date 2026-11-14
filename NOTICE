@@ -1,6 +1,12 @@
 Notch by IRUMVA
+Company: Iwasaki Softwares. Principal credit: IRUMVA Sosthene.
 Created by IRUMVA Sosthene. Built with Muse AI and Claude Sonnet.
 
 This product includes software developed with Tauri (MIT/Apache-2.0), React (MIT),
 Vite (MIT) and TypeScript (Apache-2.0). Full third-party notices are generated
 with the SBOM in Phase 6.
+
+UI typeface: Inter by The Inter Project Authors, licensed under the SIL Open Font
+License 1.1. The full licence text ships as public/INTER-OFL.txt in the source and
+is included in the installed app. SF Pro is used only when a licensed copy is
+installed on the user's PC; it is never bundled.

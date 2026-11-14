@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Badge, Button, Card, Row, Slider, Toggle } from '../components/ui';
+import { Badge, Button, Card, Row } from '../components/ui';
+import { BatteryPill, SegmentedLevel } from '../components/hud';
 
 /** Living style guide (brief section 4): every component, every state. Route: #/styleguide */
 export function StyleGuide() {
-  const [on, setOn] = useState(true);
-  const [level, setLevel] = useState(50);
+  const [hudLevel, setHudLevel] = useState(0.43);
   return (
     <main className="styleguide">
       <h1>Notch style guide</h1>
@@ -23,10 +23,14 @@ export function StyleGuide() {
           <Badge tone="agent">Agent</Badge><Badge tone="danger">Recording</Badge>
         </div>
       </Card>
-      <Card title="Row, Toggle, Slider">
-        <Row label="Provider">Enabled</Row>
-        <Toggle label="Launch at startup" checked={on} onChange={(e) => setOn(e.target.checked)} />
-        <Slider label="Volume" min={0} max={100} value={level} onChange={(e) => setLevel(Number(e.target.value))} />
+      <Card title="HUD — volume segments (1.1.5)">
+        <SegmentedLevel level={hudLevel} onSet={setHudLevel} />
+        <Row label="Level">{Math.round(hudLevel * 100)}%</Row>
+      </Card>
+      <Card title="HUD — battery pill (1.1.5)">
+        <Row label="Battery (43%, charging)">
+          <BatteryPill status={{ charging: true, batteryPercent: 43, alert: false }} />
+        </Row>
       </Card>
       <Card title="About">
         <Row label="Product">Notch by IRUMVA</Row>

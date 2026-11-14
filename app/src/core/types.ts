@@ -16,7 +16,23 @@ export interface Activity {
   sensitive?: boolean;
 }
 
-export type IslandView = 'collapsed' | 'compact' | 'minimal' | 'expanded' | 'full';
+export type IslandView = 'collapsed' | 'compact' | 'minimal' | 'peek' | 'expanded' | 'full';
+
+/** File shelf entry (path parked by drag-and-drop). */
+export interface ShelfItem { path: string; name: string; size: number }
+
+/** Daily to-do entry. dueAt is epoch ms; reminded guards one alert per due. */
+export interface TodoItem {
+  id: number; text: string; dueAt?: number; done: boolean; reminded?: boolean;
+  recur?: 'daily' | 'weekdays' | 'weekly'; weekday?: number;
+}
+
+/** Connected Bluetooth device (Rust watch). battery is null when the
+ *  device reports none; the UI then shows the card without a ring. */
+export interface BtDevice { id: string; name: string; kind: string; battery: number | null; connected: boolean }
+
+/** Water reminder state (persisted; drankMl resets daily in App). */
+export interface WaterState { goalMl: number; bottleMl: number; drankMl: number; intervalMin: number; day: string }
 
 export interface IslandState {
   view: IslandView;
@@ -35,4 +51,9 @@ export type IslandEvent =
   | { type: 'LONG_PRESS' }
   | { type: 'ESCAPE' }
   | { type: 'CLICK_AWAY' }
+  /** Fired by the island's idle timer after AUTO_HIDE_MS without interaction. */
+  | { type: 'AUTO_HIDE' }
+  /** A notification-worthy activity just appeared: pop the island open as
+   *  a banner. The 5 s auto-hide collapses it again. */
+  | { type: 'NOTIFY' }
   | { type: 'HOTKEY' };

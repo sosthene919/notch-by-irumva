@@ -4,8 +4,17 @@ A Dynamic Island for Windows 11: a pill-shaped, always-on-top, top-center surfac
 
 Created by IRUMVA Sosthene. Built with Muse AI and Claude Sonnet.
 
+## Follow / support
+
+- Instagram: https://www.instagram.com/iwasaki.10/
+- Ko-fi (support the project): https://ko-fi.com/iwasaki10
+
+The same links are in the app under Settings > About.
+
+> Font: the UI prefers **SF Pro** (the macOS system face) when a licensed copy is installed on the PC, and otherwise uses **Inter** (SIL OFL), the closest open-source match to SF Pro, bundled with the app. OnlySans is still honoured when installed, but it is commercial and is not bundled.
+
 ## Status
-Phase 1 (Foundations) in progress. See `docs/ACCEPTANCE.md` for what is verified and `docs/ASSUMPTIONS.md` for open items.
+Phases 1–6 are complete for the shipped scope and verified live (see `docs/ACCEPTANCE.md`). Features that needed premium/keyed services or APIs unavailable to an unpackaged Windows app (notification mirroring, brightness, weather, GPU temperature, OCR, radio toggles, Antigravity ACP) were removed rather than faked — see `docs/ASSUMPTIONS.md`. Builds are unsigned (SmartScreen may warn; a signing certificate is the only remaining paid item); see `docs/UPDATING.md`.
 
 ## Build (frontend — no Rust needed)
 ```powershell

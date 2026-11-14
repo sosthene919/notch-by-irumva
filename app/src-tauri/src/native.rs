@@ -20,6 +20,17 @@ pub struct MediaState {
     position_seconds: f64,
     duration_seconds: f64,
     art_data_url: Option<String>,
+    shuffle: Option<bool>,
+    repeat: String,
+    repeat_supported: bool,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaSessionInfo {
+    app: String,
+    title: String,
+    status: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -194,11 +205,32 @@ mod media {
         out
     }
 
-    pub async fn get() -> Option<MediaState> {
+    async fn pick_session(
+        manager: &GlobalSystemMediaTransportControlsSessionManager,
+        source: &Option<String>,
+    ) -> windows::core::Result<Option<windows::Media::Control::GlobalSystemMediaTransportControlsSession>> {
+        use windows::Media::Control::GlobalSystemMediaTransportControlsSession;
+        if let Some(want) = source {
+            if let Ok(sessions) = manager.GetSessions() {
+                let count = sessions.Size().unwrap_or(0);
+                for i in 0..count {
+                    if let Ok(s) = sessions.GetAt(i) {
+                        if s.SourceAppUserModelId().map(|a| a.to_string()).unwrap_or_default() == *want {
+                            return Ok(Some(s));
+                        }
+                    }
+                }
+            }
+            return Ok(None);
+        }
+        Ok(manager.GetCurrentSession().ok())
+    }
+
+    pub async fn get(source: &Option<String>) -> Option<MediaState> {
         // WinRT objects are not Send, so no Box<dyn Future + Send> here.
         let inner = async {
             let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()?.await?;
-            let Some(session) = manager.GetCurrentSession().ok() else { return Ok::<_, windows::core::Error>(None) };
+            let Some(session) = pick_session(&manager, source).await? else { return Ok::<_, windows::core::Error>(None) };
             let props = session.TryGetMediaPropertiesAsync()?.await?;
             let playback = session.GetPlaybackInfo()?;
             let status = match playback.PlaybackStatus()? {
@@ -230,6 +262,18 @@ mod media {
                     }
                 }
             }
+            let controls = playback.Controls();
+            let shuffle = if controls.as_ref().map(|c| c.IsShuffleEnabled().unwrap_or(false)).unwrap_or(false) {
+                playback.IsShuffleActive().ok().and_then(|r| r.Value().ok())
+            } else { None };
+            let repeat_supported = controls.as_ref().map(|c| c.IsRepeatEnabled().unwrap_or(false)).unwrap_or(false);
+            let repeat = if repeat_supported {
+                match playback.AutoRepeatMode().ok().and_then(|r| r.Value().ok()) {
+                    Some(windows::Media::MediaPlaybackAutoRepeatMode::Track) => "track",
+                    Some(windows::Media::MediaPlaybackAutoRepeatMode::List) => "list",
+                    _ => "none",
+                }
+            } else { "none" };
             Ok(Some(MediaState {
                 title: props.Title()?.to_string(),
                 artist: props.Artist()?.to_string(),
@@ -239,15 +283,47 @@ mod media {
                 position_seconds: ticks(timeline.Position()?),
                 duration_seconds: ticks(timeline.EndTime()?),
                 art_data_url: art,
+                shuffle,
+                repeat: repeat.into(),
+                repeat_supported,
             }))
         };
         inner.await.ok().flatten()
     }
 
-    pub async fn control(action: &str) -> bool {
+    pub async fn sessions() -> Vec<super::MediaSessionInfo> {
         let inner = async {
             let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()?.await?;
-            let session = manager.GetCurrentSession()?;
+            let mut out = Vec::new();
+            if let Ok(sessions) = manager.GetSessions() {
+                let count = sessions.Size().unwrap_or(0);
+                for i in 0..count {
+                    if let Ok(s) = sessions.GetAt(i) {
+                        let title = match s.TryGetMediaPropertiesAsync() {
+                            Ok(op) => op.await.map(|p| p.Title().map(|t| t.to_string()).unwrap_or_default()).unwrap_or_default(),
+                            Err(_) => String::new(),
+                        };
+                        let status = s.GetPlaybackInfo()
+                            .and_then(|pb| pb.PlaybackStatus())
+                            .map(|st| format!("{st:?}").to_lowercase())
+                            .unwrap_or_else(|_| "other".into());
+                        out.push(super::MediaSessionInfo {
+                            app: s.SourceAppUserModelId().map(|a| a.to_string()).unwrap_or_default(),
+                            title,
+                            status,
+                        });
+                    }
+                }
+            }
+            Ok::<_, windows::core::Error>(out)
+        };
+        inner.await.unwrap_or_default()
+    }
+
+    pub async fn control(action: &str, source: &Option<String>) -> bool {
+        let inner = async {
+            let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()?.await?;
+            let Some(session) = pick_session(&manager, source).await? else { return Ok(false) };
             Ok::<_, windows::core::Error>(match action {
                 "play" => session.TryPlayAsync()?.await?,
                 "pause" => session.TryPauseAsync()?.await?,
@@ -256,6 +332,40 @@ mod media {
                 "previous" => session.TrySkipPreviousAsync()?.await?,
                 _ => false,
             })
+        };
+        inner.await.unwrap_or(false)
+    }
+
+    pub async fn seek(position_seconds: f64, source: &Option<String>) -> bool {
+        let inner = async {
+            let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()?.await?;
+            let Some(session) = pick_session(&manager, source).await? else { return Ok(false) };
+            // TryChangePlaybackPositionAsync takes a TimeSpan (100ns ticks).
+            let ticks = (position_seconds * 10_000_000.0) as i64;
+            Ok::<_, windows::core::Error>(session.TryChangePlaybackPositionAsync(ticks)?.await?)
+        };
+        inner.await.unwrap_or(false)
+    }
+
+    pub async fn set_shuffle(active: bool, source: &Option<String>) -> bool {
+        let inner = async {
+            let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()?.await?;
+            let Some(session) = pick_session(&manager, source).await? else { return Ok(false) };
+            Ok::<_, windows::core::Error>(session.TryChangeShuffleActiveAsync(active)?.await?)
+        };
+        inner.await.unwrap_or(false)
+    }
+
+    pub async fn set_repeat(mode: &str, source: &Option<String>) -> bool {
+        let inner = async {
+            let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()?.await?;
+            let Some(session) = pick_session(&manager, source).await? else { return Ok(false) };
+            let m = match mode {
+                "track" => windows::Media::MediaPlaybackAutoRepeatMode::Track,
+                "list" => windows::Media::MediaPlaybackAutoRepeatMode::List,
+                _ => windows::Media::MediaPlaybackAutoRepeatMode::None,
+            };
+            Ok::<_, windows::core::Error>(session.TryChangeAutoRepeatModeAsync(m)?.await?)
         };
         inner.await.unwrap_or(false)
     }
@@ -299,13 +409,36 @@ fn with_media_apartment<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'stati
 }
 
 #[tauri::command]
-pub fn media_get() -> Option<MediaState> {
-    with_media_apartment(|| tauri::async_runtime::block_on(media::get())).flatten()
+pub fn media_get(source: Option<String>) -> Option<MediaState> {
+    with_media_apartment(move || tauri::async_runtime::block_on(media::get(&source))).flatten()
 }
 
 #[tauri::command]
-pub fn media_control(action: String) -> bool {
-    with_media_apartment(move || tauri::async_runtime::block_on(media::control(&action)))
+pub fn media_sessions() -> Vec<MediaSessionInfo> {
+    with_media_apartment(|| tauri::async_runtime::block_on(media::sessions())).unwrap_or_default()
+}
+
+#[tauri::command]
+pub fn media_control(action: String, source: Option<String>) -> bool {
+    with_media_apartment(move || tauri::async_runtime::block_on(media::control(&action, &source)))
+        .unwrap_or(false)
+}
+
+#[tauri::command]
+pub fn media_seek(position_seconds: f64, source: Option<String>) -> bool {
+    with_media_apartment(move || tauri::async_runtime::block_on(media::seek(position_seconds, &source)))
+        .unwrap_or(false)
+}
+
+#[tauri::command]
+pub fn media_set_shuffle(active: bool, source: Option<String>) -> bool {
+    with_media_apartment(move || tauri::async_runtime::block_on(media::set_shuffle(active, &source)))
+        .unwrap_or(false)
+}
+
+#[tauri::command]
+pub fn media_set_repeat(mode: String, source: Option<String>) -> bool {
+    with_media_apartment(move || tauri::async_runtime::block_on(media::set_repeat(&mode, &source)))
         .unwrap_or(false)
 }
 
@@ -427,10 +560,412 @@ pub fn privacy_get() -> Vec<PrivacyUse> {
     privacy::scan()
 }
 
+// ---------- notch hover (cursor tracking) ----------
+// The collapsed notch is click-through (setIgnoreCursorEvents), so the
+// WebView never sees the mouse over the idle clock/eyes. This watcher
+// polls the OS cursor against the current pill rectangle (reported by
+// the frontend on every view change) and emits enter/leave edges.
+static HOVER_REGION: std::sync::Mutex<(f64, f64)> = std::sync::Mutex::new((156.0, 38.0));
+
+#[tauri::command]
+pub fn set_hover_region(width: f64, height: f64) {
+    if let Ok(mut r) = HOVER_REGION.lock() { *r = (width, height); }
+}
+
+#[cfg(windows)]
+fn start_cursor_watch(app: AppHandle) {
+    use tauri::Manager;
+    std::thread::spawn(move || {
+        #[repr(C)]
+        struct Point { x: i32, y: i32 }
+        extern "system" { fn GetCursorPos(p: *mut Point) -> i32; }
+        let mut hovered = false;
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(120));
+            let Some(window) = app.get_webview_window("main") else { continue };
+            let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) else { continue };
+            let scale = window.scale_factor().unwrap_or(1.0);
+            let (w_css, h_css) = HOVER_REGION.lock().map(|r| *r).unwrap_or((156.0, 38.0));
+            let pill_w = w_css * scale;
+            let pill_h = h_css * scale;
+            let pill_x = pos.x as f64 + (size.width as f64 - pill_w) / 2.0;
+            let pill_y = pos.y as f64;
+            let mut pt = Point { x: 0, y: 0 };
+            if unsafe { GetCursorPos(&mut pt) } == 0 { continue; }
+            // Hysteresis: 10px slack to leave, so the edge doesn't flicker.
+            let slack = if hovered { 10.0 } else { 0.0 };
+            let inside = (pt.x as f64) >= pill_x - slack && (pt.x as f64) <= pill_x + pill_w + slack
+                && (pt.y as f64) >= pill_y - slack && (pt.y as f64) <= pill_y + pill_h + slack;
+            if inside != hovered {
+                hovered = inside;
+                let _ = app.emit("notch://notch-hover", hovered);
+            }
+        }
+    });
+}
+
+// ---------- screen-cover quiet (fullscreen + maximized apps) ----------
+// When a foreign app covers the notch's monitor (fullscreen) or its
+// work area (a maximized window — 1.2.6: users read a maximized app as
+// "the app took the screen", and the notch kept sitting on top of it),
+// the notch steps aside: it fades out (the frontend gets the event
+// first), the window hides completely, and it returns when no app
+// covers the screen any more. Shell surfaces (desktop, taskbar) never
+// count, and a covering app on a *different* monitor never hides the
+// notch. The check is pure rectangle maths so it can be unit-tested;
+// the watcher below only feeds it live Win32 values.
+
+/// Axis-aligned rectangle in virtual-screen pixels.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct FsRect { pub left: i32, pub top: i32, pub right: i32, pub bottom: i32 }
+
+/// True when `window` covers every edge of `monitor`. A 2px tolerance
+/// keeps borderless windows that stop a pixel short from flickering.
+/// (Used for the work area too: a maximized window overshoots that
+/// rectangle by its invisible frame on the sides and top.)
+pub fn rect_covers_monitor(window: FsRect, monitor: FsRect) -> bool {
+    const TOL: i32 = 2;
+    window.left <= monitor.left + TOL && window.top <= monitor.top + TOL
+        && window.right >= monitor.right - TOL && window.bottom >= monitor.bottom - TOL
+}
+
+/// Window classes that own the desktop/taskbar. They cover the monitor
+/// by design and must never read as "an app went fullscreen".
+pub fn is_shell_surface(class: &str) -> bool {
+    matches!(class,
+        "Progman" | "WorkerW" | "Shell_TrayWnd" | "Shell_SecondaryTrayWnd"
+        | "Windows.UI.Core.CoreWindow")
+}
+
+/// Pure decision for one enumerated top-level window: visible, not
+/// minimized, not ours, not a shell surface, and either fullscreen
+/// (covers every edge of the notch's monitor) or maximized
+/// (`IsZoomed`, covering every edge of the monitor's work area — a
+/// maximized window stops at the taskbar, so the fullscreen test
+/// alone never sees it). A window that merely happens to be *sized*
+/// like the work area without being zoomed does not count, so
+/// snapping/resizing windows by hand never hides the notch.
+/// Unit-tested below; the Win32 watcher only feeds it live values.
+pub fn is_cover_candidate(
+    visible: bool,
+    minimized: bool,
+    zoomed: bool,
+    own_window: bool,
+    shell: bool,
+    window: FsRect,
+    monitor: FsRect,
+    work: FsRect,
+) -> bool {
+    visible && !minimized && !own_window && !shell
+        && (rect_covers_monitor(window, monitor)
+            || (zoomed && rect_covers_monitor(window, work)))
+}
+
+#[cfg(windows)]
+struct FsEnumSearch {
+    monitor: FsRect,
+    work: FsRect,
+    ours: isize,
+    our_pid: u32,
+    found: bool,
+}
+
+#[cfg(windows)]
+extern "system" fn fs_enum_cb(hwnd: isize, lparam: isize) -> i32 {
+    #[repr(C)]
+    #[derive(Default)]
+    struct WinRect { left: i32, top: i32, right: i32, bottom: i32 }
+    extern "system" {
+        fn IsWindowVisible(hwnd: isize) -> i32;
+        fn IsIconic(hwnd: isize) -> i32;
+        fn IsZoomed(hwnd: isize) -> i32;
+        fn GetWindowRect(hwnd: isize, out: *mut WinRect) -> i32;
+        fn GetClassNameW(hwnd: isize, buf: *mut u16, max: i32) -> i32;
+        fn GetWindowThreadProcessId(hwnd: isize, pid: *mut u32) -> u32;
+        fn GetWindowLongW(hwnd: isize, index: i32) -> isize;
+    }
+    const GWL_EXSTYLE: i32 = -20;
+    const WS_EX_TOOLWINDOW: isize = 0x0000_0080;
+    let search = unsafe { &mut *(lparam as *mut FsEnumSearch) };
+    if hwnd == search.ours {
+        return 1;
+    }
+    let visible = unsafe { IsWindowVisible(hwnd) } != 0;
+    let minimized = unsafe { IsIconic(hwnd) } != 0;
+    let zoomed = unsafe { IsZoomed(hwnd) } != 0;
+    let mut pid: u32 = 0;
+    unsafe { GetWindowThreadProcessId(hwnd, &mut pid) };
+    if pid == 0 || pid == search.our_pid {
+        return 1;
+    }
+    // Tool windows (tray helpers, floating palettes) never own the screen.
+    if unsafe { GetWindowLongW(hwnd, GWL_EXSTYLE) } & WS_EX_TOOLWINDOW != 0 {
+        return 1;
+    }
+    let mut buf = [0u16; 64];
+    let n = unsafe { GetClassNameW(hwnd, buf.as_mut_ptr(), 64) };
+    let class = String::from_utf16_lossy(&buf[..n.max(0) as usize]);
+    let mut wr = WinRect::default();
+    if unsafe { GetWindowRect(hwnd, &mut wr) } == 0 {
+        return 1;
+    }
+    let rect = FsRect { left: wr.left, top: wr.top, right: wr.right, bottom: wr.bottom };
+    if is_cover_candidate(visible, minimized, zoomed, false, is_shell_surface(&class), rect, search.monitor, search.work) {
+        search.found = true;
+        return 0; // stop enumerating: one covering app is enough
+    }
+    1
+}
+
+/// True when ANY visible top-level window (not just the foreground
+/// one) is fullscreen on `monitor` or maximized over its `work` area.
+/// The old foreground-only check missed borderless/exclusive-fullscreen
+/// apps that were not the foreground window at the instant of the
+/// poll — a video or game running fullscreen behind a small floating
+/// window, an app that went fullscreen while focus sat elsewhere, and
+/// transitions where the foreground briefly read as the desktop.
+#[cfg(windows)]
+fn any_cover_on_monitor(ours: isize, monitor: FsRect, work: FsRect) -> bool {
+    extern "system" {
+        fn EnumWindows(proc_: extern "system" fn(isize, isize) -> i32, lparam: isize) -> i32;
+        fn GetCurrentProcessId() -> u32;
+    }
+    let mut search = FsEnumSearch {
+        monitor,
+        work,
+        ours,
+        our_pid: unsafe { GetCurrentProcessId() },
+        found: false,
+    };
+    unsafe { EnumWindows(fs_enum_cb, &mut search as *mut FsEnumSearch as isize) };
+    search.found
+}
+
+/// User preference (Settings > "Hide when an app is full screen or
+/// maximized"), pushed from the frontend. The command/event names keep
+/// their 1.1.0 "fullscreen" wording — they are an IPC contract with
+/// the frontend — but since 1.2.6 the watcher also covers maximized
+/// windows. Defaults to on.
+static FULLSCREEN_HIDE_ENABLED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(true);
+
+#[tauri::command]
+pub fn set_fullscreen_hide(enabled: bool) {
+    FULLSCREEN_HIDE_ENABLED.store(enabled, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[cfg(windows)]
+fn start_fullscreen_watch(app: AppHandle) {
+    use tauri::Manager;
+    std::thread::spawn(move || {
+        type Hwnd = isize;
+        #[repr(C)]
+        #[derive(Default, Clone, Copy)]
+        struct Rect { left: i32, top: i32, right: i32, bottom: i32 }
+        #[repr(C)]
+        struct MonitorInfo { size: u32, monitor: Rect, work: Rect, flags: u32 }
+        extern "system" {
+            fn MonitorFromWindow(hwnd: Hwnd, flags: u32) -> isize;
+            fn GetMonitorInfoW(monitor: isize, info: *mut MonitorInfo) -> i32;
+        }
+        const MONITOR_DEFAULTTONEAREST: u32 = 2;
+        let mut hidden = false;
+        // Showing again needs three clear readings (~750ms at the 250ms
+        // cadence), so alt-tabbing between two covering apps — or a
+        // game bouncing through a resolution change — does not flash
+        // the notch in between. Hiding is immediate on the first hit.
+        let mut clear_streak: u32 = 0;
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            let Some(window) = app.get_webview_window("main") else { continue };
+            let enabled = FULLSCREEN_HIDE_ENABLED.load(std::sync::atomic::Ordering::Relaxed);
+            let mut covered = false;
+            if enabled {
+                let ours = window.hwnd().map(|h| h.0 as isize).unwrap_or(0);
+                if ours != 0 {
+                    // The notch's own monitor, and only that monitor:
+                    // a covering app anywhere else never hides it,
+                    // and any app covering *here* always does. The
+                    // work area rides along so a maximized window
+                    // (which stops at the taskbar) counts too.
+                    let mon = unsafe { MonitorFromWindow(ours, MONITOR_DEFAULTTONEAREST) };
+                    let mut mi = MonitorInfo { size: std::mem::size_of::<MonitorInfo>() as u32, monitor: Rect::default(), work: Rect::default(), flags: 0 };
+                    if mon != 0 && unsafe { GetMonitorInfoW(mon, &mut mi) } != 0 {
+                        let m = mi.monitor;
+                        let w = mi.work;
+                        covered = any_cover_on_monitor(
+                            ours,
+                            FsRect { left: m.left, top: m.top, right: m.right, bottom: m.bottom },
+                            FsRect { left: w.left, top: w.top, right: w.right, bottom: w.bottom },
+                        );
+                    }
+                }
+            }
+            if covered && !hidden {
+                hidden = true;
+                clear_streak = 0;
+                // Let the frontend retract into the top edge first.
+                let _ = app.emit("notch://fullscreen-changed", true);
+                std::thread::sleep(std::time::Duration::from_millis(240));
+                let _ = window.hide();
+            } else if !covered && hidden {
+                if !enabled {
+                    hidden = false;
+                    clear_streak = 0;
+                    let _ = window.show();
+                    let _ = app.emit("notch://fullscreen-changed", false);
+                } else {
+                    clear_streak += 1;
+                    if clear_streak >= 3 {
+                        hidden = false;
+                        clear_streak = 0;
+                        let _ = window.show();
+                        let _ = app.emit("notch://fullscreen-changed", false);
+                    }
+                }
+            } else {
+                clear_streak = 0;
+            }
+        }
+    });
+}
+
+#[cfg(test)]
+mod fullscreen_tests {
+    use super::{is_cover_candidate, is_shell_surface, rect_covers_monitor, FsRect};
+
+    const MON: FsRect = FsRect { left: 0, top: 0, right: 1920, bottom: 1080 };
+    // Same monitor with a 48px taskbar along the bottom edge.
+    const WORK: FsRect = FsRect { left: 0, top: 0, right: 1920, bottom: 1032 };
+    // A maximized window: overshoots the work area by its invisible
+    // frame on three sides and stops exactly at the taskbar.
+    const MAXIMIZED: FsRect = FsRect { left: -8, top: -8, right: 1928, bottom: 1032 };
+
+    #[test]
+    fn exact_and_overshooting_windows_cover() {
+        assert!(rect_covers_monitor(MON, MON));
+        // Maximized windows overshoot by their invisible frame.
+        assert!(rect_covers_monitor(FsRect { left: -8, top: -8, right: 1928, bottom: 1088 }, MON));
+    }
+
+    #[test]
+    fn borderless_a_pixel_short_still_covers() {
+        assert!(rect_covers_monitor(FsRect { left: 0, top: 0, right: 1919, bottom: 1079 }, MON));
+    }
+
+    #[test]
+    fn floating_and_half_windows_do_not_cover() {
+        assert!(!rect_covers_monitor(FsRect { left: 100, top: 100, right: 900, bottom: 700 }, MON));
+        assert!(!rect_covers_monitor(FsRect { left: 0, top: 0, right: 960, bottom: 1080 }, MON));
+        // Covers width but leaves the taskbar strip: not fullscreen.
+        assert!(!rect_covers_monitor(FsRect { left: 0, top: 0, right: 1920, bottom: 1032 }, MON));
+    }
+
+    #[test]
+    fn second_monitor_uses_its_own_origin() {
+        let mon2 = FsRect { left: 1920, top: 0, right: 3840, bottom: 1080 };
+        assert!(rect_covers_monitor(mon2, mon2));
+        assert!(!rect_covers_monitor(MON, mon2));
+    }
+
+    #[test]
+    fn candidate_needs_visible_unminimized_foreign_cover() {
+        // A fullscreen app that is not the foreground window still counts.
+        assert!(is_cover_candidate(true, false, false, false, false, MON, MON, WORK));
+        // Minimized away, hidden, our own window, or the shell: never.
+        assert!(!is_cover_candidate(true, true, false, false, false, MON, MON, WORK));
+        assert!(!is_cover_candidate(false, false, false, false, false, MON, MON, WORK));
+        assert!(!is_cover_candidate(true, false, false, true, false, MON, MON, WORK));
+        assert!(!is_cover_candidate(true, false, false, false, true, MON, MON, WORK));
+        // Covering a *different* monitor does not hide this notch.
+        let mon2 = FsRect { left: 1920, top: 0, right: 3840, bottom: 1080 };
+        let work2 = FsRect { left: 1920, top: 0, right: 3840, bottom: 1032 };
+        assert!(!is_cover_candidate(true, false, false, false, false, mon2, MON, WORK));
+        assert!(is_cover_candidate(true, false, false, false, false, mon2, mon2, work2));
+    }
+
+    #[test]
+    fn maximized_window_covers_the_work_area_not_the_monitor() {
+        // The 1.2.6 fix: a maximized window never reaches the
+        // monitor's bottom edge (the taskbar lives there), so the old
+        // fullscreen-only test missed it entirely…
+        assert!(!rect_covers_monitor(MAXIMIZED, MON));
+        // …but zoomed + covering the work area is a cover.
+        assert!(is_cover_candidate(true, false, true, false, false, MAXIMIZED, MON, WORK));
+        // The same rectangle without the zoomed state is just a
+        // window sized by hand: it must not hide the notch.
+        assert!(!is_cover_candidate(true, false, false, false, false, MAXIMIZED, MON, WORK));
+        // A maximized window that is minimized away no longer covers.
+        assert!(!is_cover_candidate(true, true, true, false, false, MAXIMIZED, MON, WORK));
+        // Maximized on the *other* monitor: not this notch's problem.
+        let mon2 = FsRect { left: 1920, top: 0, right: 3840, bottom: 1080 };
+        let max2 = FsRect { left: 1912, top: -8, right: 3848, bottom: 1032 };
+        assert!(!is_cover_candidate(true, false, true, false, false, max2, MON, WORK));
+        assert!(is_cover_candidate(true, false, true, false, false, max2, mon2,
+            FsRect { left: 1920, top: 0, right: 3840, bottom: 1032 }));
+        // Half-snapped windows are not zoomed and cover only half the
+        // work area, so they never count either way.
+        let half = FsRect { left: 0, top: 0, right: 960, bottom: 1032 };
+        assert!(!is_cover_candidate(true, false, true, false, false, half, MON, WORK));
+    }
+
+    #[test]
+    fn shell_surfaces_never_count() {
+        for c in ["Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd"] {
+            assert!(is_shell_surface(c), "{c}");
+        }
+        for c in ["Chrome_WidgetWin_1", "CabinetWClass", "UnrealWindow", ""] {
+            assert!(!is_shell_surface(c), "{c}");
+        }
+    }
+}
+
+// ---------- displays (multi-monitor picker) ----------
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DisplayInfo {
+    index: usize,
+    name: String,
+    width: u32,
+    height: u32,
+    primary: bool,
+}
+
+#[tauri::command]
+pub fn list_displays(app: AppHandle) -> Vec<DisplayInfo> {
+    use tauri::Manager;
+    let primary = app.primary_monitor().ok().flatten();
+    app.available_monitors().unwrap_or_default().iter().enumerate().map(|(index, m)| {
+        let size = m.size();
+        let is_primary = primary.as_ref().is_some_and(|p| p.position() == m.position() && p.size() == m.size());
+        DisplayInfo {
+            index,
+            name: m.name().cloned().unwrap_or_else(|| format!("Display {}", index + 1)),
+            width: size.width,
+            height: size.height,
+            primary: is_primary,
+        }
+    }).collect()
+}
+
+#[tauri::command]
+pub fn move_to_display(app: AppHandle, index: usize) -> bool {
+    use tauri::Manager;
+    let monitors = app.available_monitors().unwrap_or_default();
+    let (Some(m), Some(window)) = (monitors.get(index), app.get_webview_window("main")) else { return false };
+    let Ok(size) = window.outer_size() else { return false };
+    let (pos, msize) = (m.position(), m.size());
+    let x = pos.x + (msize.width as i32 - size.width as i32) / 2;
+    // Top-center of the chosen display; the notch hugs its top edge (y=0).
+    window.set_position(tauri::PhysicalPosition::new(x, pos.y)).is_ok()
+}
+
 pub fn start_native_listeners(app: AppHandle) {
     #[cfg(windows)]
     {
         start_volume_listener(app.clone());
+        start_cursor_watch(app.clone());
+        start_fullscreen_watch(app.clone());
         privacy::watch(app.clone());
         let handle = app.clone();
         std::thread::spawn(move || unsafe {

@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notch by IRUMVA, Phase 0 prototype</title>
+<style>
+  /* Phase 0 feeling prototype. Solid colors only. No gradients, no shadows,
+     no blur. Palette and motion tokens mirror docs/PHASE0.md. */
+  :root{
+    --paper:#F5F5F7; --ink:#1D1D1F; --gray:#AAAAAA; --blue:#007AFF;
+    --tile:#1A1A1A; --line:#E0E0E0; --red:#FF4500; --purple:#6A0DAD;
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI Variable","Segoe UI",system-ui,sans-serif;background:var(--paper);color:var(--ink)}
+  .wallpaper{height:330px;background:#2F3E50;position:relative}
+  .wallpaper p{position:absolute;left:24px;bottom:16px;margin:0;color:var(--gray);font-size:13px;max-width:560px;line-height:1.5}
+  .wallpaper b{color:var(--paper)}
+  /* The island. One shape, flush with the top edge. JS springs width,
+     height and bottom radius together. */
+  #island{position:absolute;top:0;left:50%;transform:translateX(-50%);width:132px;height:32px;
+    background:var(--ink);border-radius:0 0 16px 16px;overflow:hidden;cursor:pointer;
+    transition:none;touch-action:none}
+  #island:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .view{position:absolute;inset:0;padding:6px 16px 8px;color:var(--paper);
+    opacity:0;transform:translateY(6px);transition:opacity 180ms var(--ease-out),transform 180ms var(--ease-out);
+    pointer-events:none}
+  .view.on{opacity:1;transform:none;pointer-events:auto}
+  .tabular{font-variant-numeric:tabular-nums}
+  /* Idle */
+  #v-idle{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--gray)}
+  #v-idle .dot{width:6px;height:6px;border-radius:50%;background:var(--blue)}
+  /* Compact */
+  #v-compact{display:flex;align-items:center;gap:10px}
+  .eq{display:flex;align-items:flex-end;gap:2px;height:14px}
+  .eq i{width:3px;background:var(--paper);animation:eq .9s ease-in-out infinite alternate}
+  .eq i:nth-child(2){animation-delay:-.3s}.eq i:nth-child(3){animation-delay:-.6s}
+  @keyframes eq{from{height:30%}to{height:100%}}
+  #v-compact .t{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Alert row anatomy (shared by every alert and Today rows) */
+  .row{display:flex;align-items:center;gap:10px;min-width:0}
+  .tile{flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:var(--tile);
+    display:flex;align-items:center;justify-content:center;color:var(--paper);font-size:11px;font-weight:700}
+  .row .main{flex:1;min-width:0}
+  .row .title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .detail{font-size:12px;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .when{flex:0 0 auto;font-size:11px;color:var(--gray)}
+  #v-alert{display:flex;align-items:center}
+  #v-alert .row{width:100%}
+  /* Expanded pages */
+  #v-expanded{padding:0;overflow:hidden}
+  #v-expanded .page{padding:14px 16px 22px}
+  .pages{position:relative;height:100%;width:100%}
+  .page{position:absolute;inset:0;overflow:hidden;opacity:0;transform:translateX(10px);
+    transition:opacity 180ms var(--ease-out),transform 260ms var(--ease-out);pointer-events:none}
+  .page.on{opacity:1;transform:none;pointer-events:auto}
+  .page h3{margin:0 0 10px;font-size:15px}
+  .dots{position:absolute;left:0;right:0;bottom:8px;display:flex;justify-content:center;gap:6px}
+  .dots i{width:6px;height:6px;border-radius:3px;background:var(--gray);transition:width 260ms var(--ease-out),background 260ms var(--ease-out)}
+  .dots i.on{width:18px;background:var(--paper)}
+  .cols{display:flex;gap:16px}
+  .col{flex:1;min-width:0}
+  .col .row{margin-bottom:12px}
+  .week{display:flex;gap:6px;margin:8px 0 12px}
+  .week span{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gray)}
+  .week span.today{background:var(--blue);color:#fff;font-weight:700}
+  .summary{background:var(--tile);border-radius:12px;padding:10px 12px}
+  .summary .b{font-size:13px;font-weight:700}
+  .summary .g{font-size:12px;color:var(--gray)}
+  .sdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--blue);margin-right:6px}
+  .media-art{width:44px;height:44px;border-radius:8px;background:var(--purple);flex:0 0 auto}
+  .bar{height:4px;border-radius:2px;background:#333;margin:12px 0 6px}
+  .bar i{display:block;height:100%;width:38%;border-radius:2px;background:var(--paper)}
+  .controls{display:flex;gap:8px;align-items:center}
+  button{font:inherit}
+  .ctl{background:var(--tile);color:var(--paper);border:0;border-radius:8px;padding:7px 12px;cursor:pointer;transition:transform 120ms var(--ease-out)}
+  .ctl:active{transform:scale(.97)}
+  /* Controls under the wallpaper */
+  main{padding:16px 24px 24px;max-width:860px}
+  main h1{font-size:20px;margin:0 0 6px}
+  main p{font-size:13px;line-height:1.6;margin:6px 0;color:var(--ink)}
+  .group{margin:16px 0}
+  .group .lbl{font-size:12px;color:#555;margin-bottom:8px}
+  .btn{background:var(--ink);color:var(--paper);border:0;border-radius:8px;padding:8px 14px;margin:0 8px 8px 0;cursor:pointer;transition:transform 120ms var(--ease-out)}
+  .btn:active{transform:scale(.97)}
+  .btn.alt{background:var(--line);color:var(--ink)}
+  kbd{background:var(--line);border-radius:4px;padding:1px 6px;font-family:inherit;font-size:12px}
+  .note{font-size:12px;color:#555}
+</style>
+</head>
+<body>
+<div class="wallpaper">
+  <div id="island" tabindex="0" role="button" aria-label="Notch prototype. Press Enter to expand, Escape to collapse.">
+    <section class="view" id="v-idle"><span class="dot"></span><span class="tabular" id="clock">16:43</span></section>
+
+    <section class="view" id="v-compact">
+      <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="t">Midnight Run, The Wanderers</span>
+    </section>
+
+    <section class="view" id="v-alert">
+      <div class="row">
+        <span class="tile" id="a-tile">R</span>
+        <span class="main">
+          <div class="title" id="a-title">Reminder due</div>
+          <div class="detail" id="a-detail">Water, 250 ml glass on the desk by the window</div>
+        </span>
+        <span class="when tabular" id="a-when">now</span>
+      </div>
+    </section>
+
+    <section class="view" id="v-expanded">
+      <div class="pages" id="pages">
+        <div class="page on" data-name="Media">
+          <h3>Media</h3>
+          <div class="row">
+            <span class="media-art"></span>
+            <span class="main"><div class="title">Midnight Run</div><div class="detail">The Wanderers, Night Roads</div></span>
+            <span class="when tabular">1:12</span>
+          </div>
+          <div class="bar"><i></i></div>
+          <div class="controls">
+            <button class="ctl" type="button">Prev</button>
+            <button class="ctl" type="button">Pause</button>
+            <button class="ctl" type="button">Next</button>
+            <span class="note tabular" style="color:var(--gray)">Drag the bar in the real app</span>
+          </div>
+          <p class="note" style="color:var(--gray);margin-top:14px">Current lyric line sits here at full contrast.<br>
+          <span style="opacity:.55">The line before and after stay dimmer, still readable.</span></p>
+        </div>
+        <div class="page" data-name="Today">
+          <div class="cols">
+            <div class="col">
+              <h3>Today</h3>
+              <div class="row"><span class="tile">R</span><span class="main"><div class="title">Water</div><div class="detail">250 ml, 11:00</div></span></div>
+              <div class="row"><span class="tile" style="color:var(--blue)">T</span><span class="main"><div class="title">Send invoice</div><div class="detail">To-do, 13:30</div></span></div>
+              <div class="row"><span class="tile">F</span><span class="main"><div class="title">Focus ends</div><div class="detail">25 min, 14:05</div></span></div>
+            </div>
+            <div class="col">
+              <div class="tabular" style="font-size:13px;font-weight:700">Wed 4 Nov <span id="clock2">16:43</span></div>
+              <div class="week tabular"><span>M</span><span>T</span><span class="today">4</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+              <div class="summary"><div class="b"><span class="sdot"></span>3 tasks today</div><div class="g">Next: Water, 11:00</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="page" data-name="Devices">
+          <h3>Devices</h3>
+          <div class="row"><span class="tile">E</span><span class="main"><div class="title">Buds Pro</div><div class="detail">Connected</div></span><span class="when tabular">72%</span></div>
+          <div class="row"><span class="tile">M</span><span class="main"><div class="title">Lift Mouse</div><div class="detail">Connected, no battery reported</div></span><span class="when tabular"></span></div>
+          <p class="note" style="color:var(--gray)">The real app draws a battery ring here. No ring when a device reports nothing.</p>
+        </div>
+      </div>
+      <div class="dots" id="dots" aria-hidden="true"></div>
+    </section>
+  </div>
+  <p><b>Phase 0 prototype.</b> Hover or press Enter on the island to expand it. Drag sideways on the expanded island to change page, or use arrow keys. Press Escape to collapse. Alerts dismiss themselves, or drag the alert up.</p>
+</div>
+
+<main>
+  <h1>Notch by IRUMVA, Phase 0</h1>
+  <p>One shape morphs between states. The spring keeps its velocity when you change your mind mid-flight, so grab it while it moves.</p>
+  <div class="group"><div class="lbl">State</div>
+    <button class="btn" data-go="idle">Idle pill</button>
+    <button class="btn" data-go="compact">Compact</button>
+    <button class="btn" data-go="expanded">Expanded (pages)</button>
+  </div>
+  <div class="group"><div class="lbl">Fire an alert</div>
+    <button class="btn alt" data-alert="reminder">Reminder due</button>
+    <button class="btn alt" data-alert="device">Device connected</button>
+    <button class="btn alt" data-alert="battery">Low battery</button>
+    <button class="btn alt" data-alert="timer">Timer finished</button>
+  </div>
+  <div class="group"><div class="lbl">Motion</div>
+    <button class="btn alt" id="rm">Reduced motion: off</button>
+    <span class="note">Keys: <kbd>1</kbd> idle, <kbd>2</kbd> compact, <kbd>3</kbd> expanded, <kbd>Esc</kbd> collapse, <kbd>Left</kbd>/<kbd>Right</kbd> page.</span>
+  </div>
+  <p class="note">Sample data only. The production island reads the Windows media session, Bluetooth and your local reminders. Nothing here contacts a network.</p>
+</main>
+
+<script>
+"use strict";
+/* One explicit state machine, same shape as app/src/core/stateMachine.ts.
+   Every event is valid in every state. */
+const SIZES = {
+  idle:     { w: 132, h: 32,  r: 16 },
+  compact:  { w: 252, h: 36,  r: 18 },
+  expanded: { w: 420, h: 228, r: 22 },
+  alert:    { w: 310, h: 60,  r: 20 }
+};
+/* Springs by feel. settle is near-critically damped (collapse, resize).
+   pop is under-damped and only used when an alert arrives. */
+const SPRINGS = { settle: { k: 420, d: 38 }, pop: { k: 300, d: 20 } };
+
+const island = document.getElementById("island");
+const views = { idle: v("v-idle"), compact: v("v-compact"), expanded: v("v-expanded"), alert: v("v-alert") };
+function v(id){ return document.getElementById(id); }
+
+let state = "idle";        /* machine state */
+let baseState = "idle";    /* where an alert returns to */
+let feel = "settle";
+let reduced = false;
+let cur = { ...SIZES.idle, vw: 0, vh: 0, vr: 0 };
+let target = { ...SIZES.idle };
+let raf = 0, last = 0, alertTimer = 0;
+
+function show(name){
+  for (const k in views) views[k].classList.toggle("on", k === name);
+}
+function go(next, why){
+  if (next === "alert"){ feel = "pop"; }
+  else if (why !== "alert-end") { feel = "settle"; }
+  if (next !== "alert") baseState = next;
+  state = next;
+  target = { ...SIZES[next] };
+  show(next);
+  if (next === "alert"){
+    clearTimeout(alertTimer);
+    alertTimer = setTimeout(() => go(baseState, "alert-end"), 4200);
+  }
+  startSpring();
+}
+function startSpring(){
+  cancelAnimationFrame(raf);
+  if (reduced){ /* reduced motion: cross-fade, no travel */
+    cur = { ...target, vw: 0, vh: 0, vr: 0 }; paint(); return;
+  }
+  last = performance.now();
+  raf = requestAnimationFrame(step);
+}
+function step(now){
+  const dt = Math.min((now - last) / 1000, 0.05); last = now;
+  const s = SPRINGS[feel];
+  for (const [key, vel] of [["w","vw"],["h","vh"],["r","vr"]]){
+    cur[vel] += (-(cur[key] - target[key]) * s.k - cur[vel] * s.d) * dt;
+    cur[key] += cur[vel] * dt;
+  }
+  paint();
+  const settled = ["w","h","r"].every(k => Math.abs(cur[k] - target[k]) < 0.5);
+  if (!settled) raf = requestAnimationFrame(step);
+}
+function paint(){
+  island.style.width = cur.w + "px";
+  island.style.height = cur.h + "px";
+  island.style.borderRadius = "0 0 " + cur.r + "px " + cur.r + "px";
+}
+
+/* Pages: dots, drag with momentum, wheel, keyboard. */
+const pagesEl = document.getElementById("pages");
+const dotsEl = document.getElementById("dots");
+const pageNames = [...pagesEl.children].map(p => p.dataset.name);
+let page = 0;
+pageNames.forEach((n, i) => {
+  const d = document.createElement("i");
+  if (i === 0) d.className = "on";
+  d.title = n; dotsEl.appendChild(d);
+});
+function setPage(n){
+  page = (n + pageNames.length) % pageNames.length;
+  [...pagesEl.children].forEach((p, i) => { p.classList.toggle("on", i === page); p.style.transform = ""; });
+  [...dotsEl.children].forEach((d, i) => d.classList.toggle("on", i === page));
+  island.setAttribute("aria-label", "Notch prototype, page " + (page + 1) + " of " + pageNames.length + ": " + pageNames[page] + ".");
+}
+let dragX = null, dragV = 0, dragT = 0;
+island.addEventListener("pointerdown", e => {
+  dragX = e.clientX; dragT = performance.now(); dragV = 0;
+  island.setPointerCapture(e.pointerId);
+});
+island.addEventListener("pointermove", e => {
+  if (dragX === null) return;
+  const now = performance.now(), dx = e.clientX - dragX;
+  dragV = dx / Math.max(1, now - dragT) * 16; dragT = now;
+  if (state === "alert" && e.movementY < -2) { /* swipe up dismisses */
+    clearTimeout(alertTimer); go(baseState, "alert-end"); dragX = null; return;
+  }
+  if (state === "expanded")
+    pagesEl.children[page].style.transform = "translateX(" + dx + "px)";
+});
+island.addEventListener("pointerup", e => {
+  if (dragX === null) return;
+  const dx = e.clientX - dragX; dragX = null;
+  if (state === "expanded"){
+    if (dx < -40 || dragV < -3) setPage(page + 1);
+    else if (dx > 40 || dragV > 3) setPage(page - 1);
+    else setPage(page);
+  }
+});
+island.addEventListener("wheel", e => {
+  if (state === "expanded"){ setPage(page + (e.deltaY > 0 ? 1 : -1)); }
+}, { passive: true });
+
+/* Hover expands, leaving collapses back to the base view. */
+island.addEventListener("pointerenter", () => { if (state === "idle" || state === "compact") go("expanded"); });
+island.addEventListener("pointerleave", () => { if (state === "expanded") go(baseState === "expanded" ? "compact" : baseState); });
+
+/* Alerts share one row anatomy. */
+const ALERTS = {
+  reminder: ["R", "Reminder due", "Water, 250 ml glass on the desk by the window", "now"],
+  device:   ["E", "Buds Pro connected", "Earbuds, battery 72%", "now"],
+  battery:  ["B", "Buds Pro battery low", "20% left", "now"],
+  timer:    ["F", "Focus timer finished", "25 minutes", "now"]
+};
+function fire(kind){
+  const [tile, title, detail, when] = ALERTS[kind];
+  v("a-tile").textContent = tile; v("a-title").textContent = title;
+  v("a-detail").textContent = detail; v("a-when").textContent = when;
+  go("alert");
+}
+document.querySelectorAll("[data-alert]").forEach(b => b.addEventListener("click", () => fire(b.dataset.alert)));
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => go(b.dataset.go)));
+
+const rm = document.getElementById("rm");
+rm.addEventListener("click", () => {
+  reduced = !reduced;
+  rm.textContent = "Reduced motion: " + (reduced ? "on" : "off");
+  startSpring();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "1") go("idle");
+  else if (e.key === "2") go("compact");
+  else if (e.key === "3") go("expanded");
+  else if (e.key === "Escape") go(baseState === "expanded" ? "idle" : baseState);
+  else if (e.key === "ArrowRight" && state === "expanded") setPage(page + 1);
+  else if (e.key === "ArrowLeft" && state === "expanded") setPage(page - 1);
+  else if (e.key === "Enter" && document.activeElement === island) go("expanded");
+});
+island.addEventListener("click", () => { if (state === "compact" || state === "idle") go("expanded"); });
+
+function tick(){
+  const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  v("clock").textContent = t; v("clock2").textContent = t;
+}
+tick(); setInterval(tick, 15000);
+show("idle"); paint();
+/* Deep links for screenshot passes: ?state=expanded&page=1 or ?alert=device */
+const q = new URLSearchParams(location.search);
+if (q.get("rm")) { reduced = true; rm.textContent = "Reduced motion: on"; }
+if (q.get("alert")) { go("compact"); fire(q.get("alert")); }
+else if (q.get("state")) { go(q.get("state")); if (q.get("page")) { pagesEl.style.transition = "none"; setPage(+q.get("page")); } }
+else setTimeout(() => go("compact"), 900); /* one live activity arrives */
+if (q.get("debug")) {
+  setTimeout(() => {
+    const boxes = [...pagesEl.children].map(p => {
+      const r = p.getBoundingClientRect();
+      return p.dataset.name + " x=" + Math.round(r.x) + " w=" + Math.round(r.width);
+    });
+    const ir = island.getBoundingClientRect();
+    const notes = [...document.querySelectorAll(".page .note")].map(p => {
+      const r = p.getBoundingClientRect();
+      return "note x=" + Math.round(r.x) + " offL=" + p.offsetLeft + " offT=" + p.offsetTop + " offP=" + (p.offsetParent?.id || p.offsetParent?.className) + " in=" + (p.closest(".page")?.dataset.name) + " '" + p.textContent.slice(0, 18) + "'";
+    });
+    document.title = "DBG island x=" + Math.round(ir.x) + " w=" + Math.round(ir.width) + " | " + boxes.join(" | ") + " | " + notes.join(" | ");
+  }, 300);
+}
+</script>
+</body>
+</html>

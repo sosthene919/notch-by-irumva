@@ -10,11 +10,35 @@ export interface Size { width: number; height: number }
  * animation; inner content animates with transform/opacity only. Frame
  * budget is verified in Phase 6 (docs/ACCEPTANCE.md).
  */
-export function useSpringSize(target: Size, reducedMotion: boolean): Size {
+/** Springs are described by feel, not duration (brief section 2):
+ *  - `settle`: near-critically damped, for utilitarian moves (collapse,
+ *    resize). No visible bounce.
+ *  - `peek`: notification banner. Still near-critically damped — an
+ *    alert earns attention by arriving, not by bouncing (Emil
+ *    Kowalski: ease-out entrances, bounce almost never). A touch
+ *    softer than `settle` so the banner reads as placed, not snapped.
+ *  - `expand`: opening the notch up (expanded/full). Stiffer and
+ *    still near-critically damped (1.2.6): the `settle` spring's
+ *    long tail (~0.58s collapsed -> full) made opening the hub feel
+ *    laggy; this one settles in ~0.4s with no visible overshoot.
+ *  - `pop`: under-damped, kept for callers that explicitly want it.
+ *  All carry velocity across retargets, so grabbing the island
+ *  mid-flight never jumps. */
+export type SpringFeel = 'settle' | 'pop' | 'peek' | 'expand';
+const SPRINGS: Record<SpringFeel, { stiffness: number; damping: number }> = {
+  settle: { stiffness: 400, damping: 36 },
+  peek: { stiffness: 340, damping: 31 },
+  expand: { stiffness: 900, damping: 56 },
+  pop: { stiffness: 300, damping: 20 },
+};
+
+export function useSpringSize(target: Size, reducedMotion: boolean, feel: SpringFeel = 'settle'): Size {
   const [size, setSize] = useState<Size>(target);
   const state = useRef({ ...target, vx: 0, vy: 0 });
   const targetRef = useRef(target);
   targetRef.current = target;
+  const feelRef = useRef(feel);
+  feelRef.current = feel;
 
   useEffect(() => {
     if (reducedMotion) { state.current = { ...target, vx: 0, vy: 0 }; setSize(target); return; }
@@ -22,10 +46,17 @@ export function useSpringSize(target: Size, reducedMotion: boolean): Size {
     const step = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.05); last = now;
       const s = state.current; const t = targetRef.current;
-      const stiffness = 260; const damping = 30;
-      s.vx += (-(s.width - t.width) * stiffness - s.vx * damping) * dt;
-      s.vy += (-(s.height - t.height) * stiffness - s.vy * damping) * dt;
-      s.width += s.vx * dt; s.height += s.vy * dt;
+      const { stiffness, damping } = SPRINGS[feelRef.current];
+      // Substep at 120Hz: the stiff `expand` spring would go unstable
+      // on a single 50ms hitched frame, and 60Hz steps make its tail
+      // judder. Integration cost is trivial at these step counts.
+      const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
+      const h = dt / steps;
+      for (let i = 0; i < steps; i++) {
+        s.vx += (-(s.width - t.width) * stiffness - s.vx * damping) * h;
+        s.vy += (-(s.height - t.height) * stiffness - s.vy * damping) * h;
+        s.width += s.vx * h; s.height += s.vy * h;
+      }
       setSize({ width: s.width, height: s.height });
       const settled = Math.abs(s.width - t.width) < 0.5 && Math.abs(s.height - t.height) < 0.5
         && Math.abs(s.vx) < 1 && Math.abs(s.vy) < 1;

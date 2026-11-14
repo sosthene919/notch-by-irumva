@@ -24,9 +24,10 @@ if (existsSync(cargoPath)) {
 }
 const sbom = {
   bomFormat: 'CycloneDX', specVersion: '1.5',
-  metadata: { component: { type: 'application', name: 'Notch by IRUMVA', version: '0.1.0' } },
+  metadata: { component: { type: 'application', name: 'Notch by IRUMVA', version: JSON.parse(readFileSync(join(root, 'app/package.json'), 'utf8')).version } },
   components,
 };
 const out = join(root, 'sbom.json');
 writeFileSync(out, JSON.stringify(sbom, null, 2));
 console.log(`SBOM written to ${out}: ${components.length} components`);
+

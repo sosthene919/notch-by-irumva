@@ -31,6 +31,10 @@ export function createBatteryProvider(source: BatterySource = nativeBatterySourc
     } else if (cur.acOnline || cur.percent > 25) {
       remove('battery-low');
     }
+    // Edge only: reaching full charge while plugged in (not at launch).
+    if (cur.acOnline && cur.percent >= 100 && prev && prev.percent < 100) {
+      publish({ id: 'battery-full', providerId: 'battery', kind: 'battery-full', title: 'Battery full', subtitle: '100% · charged', priority: 65, startedAt: now, expiresAt: now + 8000, data: { percent: cur.percent } });
+    }
     prev = cur;
   };
 

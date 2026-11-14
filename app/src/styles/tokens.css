@@ -1,22 +1,78 @@
 /* Design tokens — the only place hex values may appear (brief section 4).
-   Palette contract verified by scripts/contrast.mjs. */
+   Palette contract verified by scripts/contrast.mjs.
+   1.1.5: Boring-style monochrome on pure black — white/grey only, with
+   two accents kept from the references: today-blue and the music badge. */
 :root {
-  --notch-surface: #1D1D1F;
-  --notch-surface-deep: #1A1A1A;
+  --notch-surface: #000000;
+  --notch-surface-deep: #1C1C1E;
+  --notch-surface-elev: #2C2C2E;
   --notch-surface-light: #F5F5F7;
-  --notch-on-dark: #F5F5F7;
-  --notch-text-secondary: #AAAAAA;
-  --notch-divider: #E0E0E0;
-  --notch-action: #007AFF;
+  --notch-on-dark: #FFFFFF;
+  --notch-text-secondary: #98989F;
+  --notch-divider: #38383A;
+  --notch-action: #0A84FF;
   --notch-action-text: #66AFFF; /* lighter tint for small text on dark (contrast script) */
   --notch-agent: #6A0DAD; /* fills only, never text/icon on dark */
-  --notch-danger: #FF4500;
+  --notch-danger: #FF453A;
+  --notch-success: #30D158;
+  --notch-focus-red: #FF375F;
+  --notch-music-red: #FA2D48;
+  --notch-amber: #FFD60A;
+  /* Safe-mode notice: always opaque, independent of the material mode. */
+  --notch-safe-bg: #1C1C1E;
+  --notch-safe-fg: #FFFFFF;
+  /* Track fill for sliders/progress on the island surface */
+  --notch-track: rgba(255, 255, 255, 0.16);
 
-  --notch-font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  /* Typeface: SF Pro is what macOS itself uses. Apple's
+     licence does not allow bundling it in a Windows app, so the
+     shipped face is Inter (SIL OFL), the closest open-source match
+     to SF Pro. If a licensed SF Pro is installed on the PC, the
+     first two families pick it up; Otherwise Inter is always there.
+     OnlySans stays in the stack for users who already installed it. */
+  --notch-font: "SF Pro Text", "SF Pro Display", "SF Pro", "Inter Variable", "Inter", "OnlySans", "Onlysans", "Onlysans TRIAL", "OnlySans Trial", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   --notch-radius-pill: 999px;
+  --notch-radius-card: 18px;
   --notch-space-1: 4px;
   --notch-space-2: 8px;
   --notch-space-3: 16px;
   --notch-space-4: 24px;
   --notch-focus-ring: 0 0 0 2px var(--notch-surface), 0 0 0 4px var(--notch-action);
+}
+
+/* Material modes (Settings > Appearance). "normal" is the opaque
+   black/light look; the other two let the desktop show through the
+   island. backdrop-filter is harmless on WebView2 and helps over
+   wallpaper; translucency itself comes from the colour alpha. */
+[data-material="translucent"] {
+  --notch-surface: rgba(10, 10, 13, 0.68);
+  --notch-surface-deep: rgba(44, 44, 48, 0.64);
+  --notch-surface-elev: rgba(72, 72, 80, 0.68);
+  --notch-divider: rgba(255, 255, 255, 0.14);
+  --notch-track: rgba(255, 255, 255, 0.18);
+}
+[data-material="glass"] {
+  --notch-surface: rgba(16, 16, 24, 0.42);
+  --notch-surface-deep: rgba(52, 52, 62, 0.44);
+  --notch-surface-elev: rgba(90, 90, 102, 0.50);
+  --notch-divider: rgba(255, 255, 255, 0.20);
+  --notch-track: rgba(255, 255, 255, 0.24);
+}
+[data-theme="light"][data-material="translucent"] {
+  --notch-surface: rgba(245, 245, 247, 0.78);
+  --notch-surface-deep: rgba(228, 228, 233, 0.72);
+  --notch-surface-elev: rgba(255, 255, 255, 0.82);
+  --notch-on-dark: #1D1D1F;
+  --notch-text-secondary: #56565B;
+  --notch-divider: rgba(0, 0, 0, 0.12);
+  --notch-track: rgba(0, 0, 0, 0.16);
+}
+[data-theme="light"][data-material="glass"] {
+  --notch-surface: rgba(245, 245, 247, 0.52);
+  --notch-surface-deep: rgba(228, 228, 233, 0.48);
+  --notch-surface-elev: rgba(255, 255, 255, 0.62);
+  --notch-on-dark: #1D1D1F;
+  --notch-text-secondary: #56565B;
+  --notch-divider: rgba(0, 0, 0, 0.15);
+  --notch-track: rgba(0, 0, 0, 0.20);
 }

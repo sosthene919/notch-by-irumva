@@ -1,7 +1,7 @@
 [package]
 name = "notch"
-version = "0.1.0"
-description = "Notch by IRUMVA — a Dynamic Island for Windows 11"
+version = "1.2.6"
+description = "Notch by IRUMVA â€” a Dynamic Island for Windows 11"
 authors = ["IRUMVA Sosthene"]
 license = "MIT"
 edition = "2021"
@@ -14,14 +14,16 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-global-shortcut = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+tokio = { version = "1", features = ["time"] }
 
 [target.'cfg(windows)'.dependencies]
 # Version matched to the one Tauri 2.12 resolves (windows 0.62.2 in Cargo.lock).
-windows = { version = "0.62", features = ["Media_Control", "Foundation", "Storage_Streams", "Security_Credentials_UI", "Win32_Foundation", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com"] }
+windows = { version = "0.62", features = ["Media_Control", "Foundation", "Foundation_Collections", "Storage_Streams", "Win32_Foundation", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com", "Devices_Bluetooth", "Devices_Bluetooth_GenericAttributeProfile", "Devices_Enumeration"] }
 windows-core = "0.62"
-sha2 = "0.10"
-hmac = "0.12"
+

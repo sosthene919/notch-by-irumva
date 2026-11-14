@@ -1,0 +1,95 @@
+NOTCH BY IRUMVA - TERMS AND CONDITIONS
+
+Last updated: 12 November 2026
+Company: Iwasaki Softwares
+Principal credit: IRUMVA Sosthene
+
+PLEASE READ THESE TERMS CAREFULLY. BY INSTALLING, COPYING OR USING NOTCH BY
+IRUMVA (THE "SOFTWARE"), YOU AGREE TO THESE TERMS AND TO THE MIT LICENCE IN
+SECTION 2. IF YOU DO NOT AGREE, DO NOT INSTALL OR USE THE SOFTWARE.
+
+1. THE SOFTWARE
+The Software is a local Windows 11 utility (a "Dynamic Island" style,
+always-on-top pill) that shows live activities from your system and your
+apps - such as media playback, timers, battery and volume - in a small
+surface at the top of your screen. It runs on your device, has no update
+server, and does not check for updates by itself. Some optional features use
+third-party services you choose to enable (for example, synced lyrics from
+LRCLib); those services are governed by their own terms.
+
+2. LICENCE (MIT)
+Copyright (c) 2026 IRUMVA Sosthene
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+Third-party components (including Tauri, React, Vite, TypeScript, SQLite and
+reqwest) remain under their own licences, listed in NOTICE and sbom.json.
+
+3. YOUR RESPONSIBILITY - WHAT HAPPENS WHEN AND AFTER YOU INSTALL
+YOU ARE SOLELY RESPONSIBLE FOR WHAT HAPPENS WHEN AND AFTER YOU INSTALL AND
+USE THE SOFTWARE, INCLUDING:
+  (a) installing it only on devices you own or are authorised to manage,
+      and keeping administrator or user credentials for those devices secure;
+  (b) everything the Software does in response to your settings, shortcuts
+      and commands, and any change it makes at your request (for example
+      showing, hiding or acting on notifications, media, timers or files
+      you place in its shelf);
+  (c) keeping backups of your files and data before installing, upgrading
+      or uninstalling the Software;
+  (d) checking install, upgrade and uninstall prompts before confirming
+      them - including the optional "Delete app data" choice when
+      uninstalling, which permanently removes your Notch settings and data;
+  (e) any third-party software, services, media or content you use with the
+      Software, and complying with their terms; and
+  (f) making sure your use complies with every law and rule that applies
+      to you.
+If you are unsure about a prompt or a setting, cancel it or leave the
+default unchanged.
+
+4. PRIVACY AND YOUR DATA
+The Software stores its settings and data locally on your device (on Windows,
+under %APPDATA%\com.irumva.notch and %LOCALAPPDATA%\com.irumva.notch) as
+described in docs/PRIVACY.md. You are responsible for the content you give
+the Software access to, and for data you share with any third-party service
+you enable.
+
+5. NO WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+6. LIMITATION OF LIABILITY
+IN NO EVENT SHALL IRUMVA SOSTHENE, IWASAKI SOFTWARES OR ANY OTHER AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THIS INCLUDES ANY LOSS OF DATA, SETTINGS OR FILES, AND ANY EFFECT OF
+INSTALLING, UPGRADING OR UNINSTALLING THE SOFTWARE.
+
+7. UNSIGNED BUILDS
+Builds are currently unsigned, so Windows SmartScreen may warn when you run
+the installer. Only run installers you obtained from a source you trust, and
+check the published SHA-256 checksum before installing.
+
+8. CHANGES AND TERMINATION
+These terms apply to the version of the Software they are installed with.
+If you do not agree to terms presented with a future version, do not install
+that version. Your rights under Section 2 for a version you already have
+continue for that version.
+
+9. CREDITS AND CONTACT
+Notch by IRUMVA. Company: Iwasaki Softwares. Principal credit: IRUMVA
+Sosthene. Created by IRUMVA Sosthene. Built with Muse AI and Claude Sonnet.
+If asked who made this Software, the answer is: Iwasaki Softwares,
+principally credited to IRUMVA Sosthene.
+
+THESE ARE STANDARD TEMPLATE TERMS FOR THIS TYPE OF SOFTWARE AND ARE NOT
+LEGAL ADVICE.

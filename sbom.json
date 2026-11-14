@@ -5,7 +5,7 @@
     "component": {
       "type": "application",
       "name": "Notch by IRUMVA",
-      "version": "0.1.0"
+      "version": "1.2.6"
     }
   },
   "components": [
@@ -281,6 +281,12 @@
     },
     {
       "type": "library",
+      "name": "@fontsource-variable/inter",
+      "version": "5.3.0",
+      "ecosystem": "npm"
+    },
+    {
+      "type": "library",
       "name": "@jridgewell/gen-mapping",
       "version": "0.3.13",
       "ecosystem": "npm"
@@ -371,6 +377,18 @@
     },
     {
       "type": "library",
+      "name": "@rollup/rollup-linux-arm64-gnu",
+      "version": "4.67.5",
+      "ecosystem": "npm"
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-arm64-musl",
+      "version": "4.67.5",
+      "ecosystem": "npm"
+    },
+    {
+      "type": "library",
       "name": "@rollup/rollup-linux-loong64-gnu",
       "version": "4.67.5",
       "ecosystem": "npm"
@@ -390,6 +408,18 @@
     {
       "type": "library",
       "name": "@rollup/rollup-linux-ppc64-musl",
+      "version": "4.67.5",
+      "ecosystem": "npm"
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-riscv64-gnu",
+      "version": "4.67.5",
+      "ecosystem": "npm"
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-riscv64-musl",
       "version": "4.67.5",
       "ecosystem": "npm"
     },
@@ -426,6 +456,12 @@
     {
       "type": "library",
       "name": "@rollup/rollup-win32-arm64-msvc",
+      "version": "4.67.5",
+      "ecosystem": "npm"
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-win32-ia32-msvc",
       "version": "4.67.5",
       "ecosystem": "npm"
     },
@@ -521,6 +557,12 @@
     },
     {
       "type": "library",
+      "name": "@tauri-apps/plugin-global-shortcut",
+      "version": "2.4.1",
+      "ecosystem": "npm"
+    },
+    {
+      "type": "library",
       "name": "@types/babel__core",
       "version": "7.20.5",
       "ecosystem": "npm"
@@ -541,6 +583,18 @@
       "type": "library",
       "name": "@types/babel__traverse",
       "version": "7.28.0",
+      "ecosystem": "npm"
+    },
+    {
+      "type": "library",
+      "name": "@types/chai",
+      "version": "5.2.3",
+      "ecosystem": "npm"
+    },
+    {
+      "type": "library",
+      "name": "@types/deep-eql",
+      "version": "4.0.2",
       "ecosystem": "npm"
     },
     {
@@ -569,38 +623,14 @@
     },
     {
       "type": "library",
-      "name": "@vitest/expect",
-      "version": "2.1.9",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@vitest/pretty-format",
-      "version": "2.1.9",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@vitest/runner",
-      "version": "2.1.9",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@vitest/snapshot",
-      "version": "2.1.9",
+      "name": "@vitest/mocker",
+      "version": "5.1.0",
       "ecosystem": "npm"
     },
     {
       "type": "library",
       "name": "@vitest/spy",
-      "version": "2.1.9",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@vitest/utils",
-      "version": "2.1.9",
+      "version": "5.1.0",
       "ecosystem": "npm"
     },
     {
@@ -623,12 +653,6 @@
     },
     {
       "type": "library",
-      "name": "cac",
-      "version": "6.7.14",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
       "name": "caniuse-lite",
       "version": "1.0.30001820",
       "ecosystem": "npm"
@@ -636,13 +660,7 @@
     {
       "type": "library",
       "name": "chai",
-      "version": "5.3.3",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "check-error",
-      "version": "2.1.3",
+      "version": "6.3.0",
       "ecosystem": "npm"
     },
     {
@@ -665,12 +683,6 @@
     },
     {
       "type": "library",
-      "name": "deep-eql",
-      "version": "5.0.2",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
       "name": "electron-to-chromium",
       "version": "1.5.477",
       "ecosystem": "npm"
@@ -678,7 +690,7 @@
     {
       "type": "library",
       "name": "es-module-lexer",
-      "version": "1.7.0",
+      "version": "2.3.2",
       "ecosystem": "npm"
     },
     {
@@ -743,12 +755,6 @@
     },
     {
       "type": "library",
-      "name": "loupe",
-      "version": "3.2.1",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
       "name": "lru-cache",
       "version": "5.1.1",
       "ecosystem": "npm"
@@ -756,7 +762,7 @@
     {
       "type": "library",
       "name": "magic-string",
-      "version": "0.30.21",
+      "version": "1.4.5",
       "ecosystem": "npm"
     },
     {
@@ -779,14 +785,8 @@
     },
     {
       "type": "library",
-      "name": "pathe",
-      "version": "1.1.2",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "pathval",
-      "version": "2.0.1",
+      "name": "obug",
+      "version": "3.0.0",
       "ecosystem": "npm"
     },
     {
@@ -845,62 +845,32 @@
     },
     {
       "type": "library",
-      "name": "siginfo",
-      "version": "2.0.0",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
       "name": "source-map-js",
       "version": "1.2.2",
       "ecosystem": "npm"
     },
     {
       "type": "library",
-      "name": "stackback",
-      "version": "0.0.2",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
       "name": "std-env",
-      "version": "3.10.0",
+      "version": "4.3.0",
       "ecosystem": "npm"
     },
     {
       "type": "library",
       "name": "tinybench",
-      "version": "2.9.0",
+      "version": "6.2.3",
       "ecosystem": "npm"
     },
     {
       "type": "library",
       "name": "tinyexec",
-      "version": "0.3.2",
+      "version": "1.3.1",
       "ecosystem": "npm"
     },
     {
       "type": "library",
       "name": "tinyglobby",
       "version": "0.2.17",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "tinypool",
-      "version": "1.1.1",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "tinyrainbow",
-      "version": "1.2.0",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "tinyspy",
-      "version": "3.0.2",
       "ecosystem": "npm"
     },
     {
@@ -923,326 +893,14 @@
     },
     {
       "type": "library",
-      "name": "vite-node",
-      "version": "2.1.9",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/aix-ppc64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/android-arm",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/android-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/android-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/darwin-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/darwin-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/freebsd-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/freebsd-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-arm",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-ia32",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-loong64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-mips64el",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-ppc64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-riscv64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-s390x",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/netbsd-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/openbsd-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/sunos-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/win32-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/win32-ia32",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/win32-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "esbuild",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "vite",
-      "version": "5.4.21",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
       "name": "vitest",
-      "version": "2.1.9",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/aix-ppc64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/android-arm",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/android-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/android-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/darwin-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/darwin-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/freebsd-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/freebsd-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-arm",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-ia32",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-loong64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-mips64el",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-ppc64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-riscv64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-s390x",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/linux-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/netbsd-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/openbsd-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/sunos-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/win32-arm64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/win32-ia32",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@esbuild/win32-x64",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "@vitest/mocker",
-      "version": "2.1.9",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "esbuild",
-      "version": "0.21.5",
-      "ecosystem": "npm"
-    },
-    {
-      "type": "library",
-      "name": "vite",
-      "version": "5.4.21",
+      "version": "5.1.0",
       "ecosystem": "npm"
     },
     {
       "type": "library",
       "name": "why-is-node-running",
-      "version": "2.3.0",
+      "version": "3.2.1",
       "ecosystem": "npm"
     },
     {
@@ -1255,6 +913,12 @@
       "type": "library",
       "name": "adler2",
       "version": "2.0.1",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "ahash",
+      "version": "0.8.12",
       "ecosystem": "cargo"
     },
     {
@@ -1315,6 +979,12 @@
       "type": "library",
       "name": "base64",
       "version": "0.21.7",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "base64",
+      "version": "0.22.1",
       "ecosystem": "cargo"
     },
     {
@@ -1469,6 +1139,18 @@
     },
     {
       "type": "library",
+      "name": "cfg_aliases",
+      "version": "0.2.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "chacha20",
+      "version": "0.10.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "chrono",
       "version": "0.4.45",
       "ecosystem": "cargo"
@@ -1513,6 +1195,12 @@
       "type": "library",
       "name": "cpufeatures",
       "version": "0.2.17",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "cpufeatures",
+      "version": "0.3.1",
       "ecosystem": "cargo"
     },
     {
@@ -1721,6 +1409,24 @@
     },
     {
       "type": "library",
+      "name": "errno",
+      "version": "0.3.14",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "fallible-iterator",
+      "version": "0.3.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "fallible-streaming-iterator",
+      "version": "0.1.9",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "fastrand",
       "version": "2.5.0",
       "ecosystem": "cargo"
@@ -1883,6 +1589,18 @@
     },
     {
       "type": "library",
+      "name": "gethostname",
+      "version": "1.1.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "getrandom",
+      "version": "0.2.17",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "getrandom",
       "version": "0.3.4",
       "ecosystem": "cargo"
@@ -1931,6 +1649,12 @@
     },
     {
       "type": "library",
+      "name": "global-hotkey",
+      "version": "0.8.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "gobject-sys",
       "version": "0.18.0",
       "ecosystem": "cargo"
@@ -1962,7 +1686,19 @@
     {
       "type": "library",
       "name": "hashbrown",
+      "version": "0.14.5",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "hashbrown",
       "version": "0.17.1",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "hashlink",
+      "version": "0.9.1",
       "ecosystem": "cargo"
     },
     {
@@ -1981,12 +1717,6 @@
       "type": "library",
       "name": "hex",
       "version": "0.4.3",
-      "ecosystem": "cargo"
-    },
-    {
-      "type": "library",
-      "name": "hmac",
-      "version": "0.12.1",
       "ecosystem": "cargo"
     },
     {
@@ -2023,6 +1753,12 @@
       "type": "library",
       "name": "hyper",
       "version": "1.12.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "hyper-rustls",
+      "version": "0.27.10",
       "ecosystem": "cargo"
     },
     {
@@ -2226,6 +1962,12 @@
     {
       "type": "library",
       "name": "keyboard-types",
+      "version": "0.7.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "keyboard-types",
       "version": "0.8.3",
       "ecosystem": "cargo"
     },
@@ -2267,6 +2009,18 @@
     },
     {
       "type": "library",
+      "name": "libsqlite3-sys",
+      "version": "0.30.1",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "linux-raw-sys",
+      "version": "0.12.1",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "litemap",
       "version": "0.8.3",
       "ecosystem": "cargo"
@@ -2281,6 +2035,12 @@
       "type": "library",
       "name": "log",
       "version": "0.4.35",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "lru-slab",
+      "version": "0.1.3",
       "ecosystem": "cargo"
     },
     {
@@ -2358,7 +2118,7 @@
     {
       "type": "library",
       "name": "notch",
-      "version": "0.1.0",
+      "version": "1.2.6",
       "ecosystem": "cargo"
     },
     {
@@ -2657,6 +2417,24 @@
     },
     {
       "type": "library",
+      "name": "quinn",
+      "version": "0.11.12",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "quinn-proto",
+      "version": "0.11.19",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "quinn-udp",
+      "version": "0.5.16",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "quote",
       "version": "1.0.47",
       "ecosystem": "cargo"
@@ -2671,6 +2449,24 @@
       "type": "library",
       "name": "r-efi",
       "version": "6.0.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "rand",
+      "version": "0.10.3",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "rand_core",
+      "version": "0.10.1",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "rand_pcg",
+      "version": "0.10.2",
       "ecosystem": "cargo"
     },
     {
@@ -2724,7 +2520,25 @@
     {
       "type": "library",
       "name": "reqwest",
+      "version": "0.12.28",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "reqwest",
       "version": "0.13.5",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "ring",
+      "version": "0.17.14",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "rusqlite",
+      "version": "0.32.1",
       "ecosystem": "cargo"
     },
     {
@@ -2741,7 +2555,37 @@
     },
     {
       "type": "library",
+      "name": "rustix",
+      "version": "1.1.6",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "rustls",
+      "version": "0.23.46",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "rustls-pki-types",
+      "version": "1.16.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "rustls-webpki",
+      "version": "0.103.16",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "rustversion",
+      "version": "1.0.23",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "ryu",
       "version": "1.0.23",
       "ecosystem": "cargo"
     },
@@ -2845,6 +2689,12 @@
       "type": "library",
       "name": "serde_spanned",
       "version": "1.1.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "serde_urlencoded",
+      "version": "0.7.1",
       "ecosystem": "cargo"
     },
     {
@@ -3059,6 +2909,18 @@
     },
     {
       "type": "library",
+      "name": "tauri-plugin",
+      "version": "2.7.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "tauri-plugin-global-shortcut",
+      "version": "2.4.1",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "tauri-runtime",
       "version": "2.12.2",
       "ecosystem": "cargo"
@@ -3145,6 +3007,12 @@
       "type": "library",
       "name": "tokio",
       "version": "1.54.1",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "tokio-rustls",
+      "version": "0.26.6",
       "ecosystem": "cargo"
     },
     {
@@ -3281,6 +3149,12 @@
     },
     {
       "type": "library",
+      "name": "untrusted",
+      "version": "0.9.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "url",
       "version": "2.5.8",
       "ecosystem": "cargo"
@@ -3307,6 +3181,12 @@
       "type": "library",
       "name": "uuid",
       "version": "1.29.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "vcpkg",
+      "version": "0.2.15",
       "ecosystem": "cargo"
     },
     {
@@ -3421,6 +3301,12 @@
       "type": "library",
       "name": "webkit2gtk-sys",
       "version": "2.0.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "webpki-roots",
+      "version": "1.0.12",
       "ecosystem": "cargo"
     },
     {
@@ -3540,6 +3426,18 @@
     {
       "type": "library",
       "name": "windows-sys",
+      "version": "0.52.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "windows-sys",
+      "version": "0.59.0",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "windows-sys",
       "version": "0.61.2",
       "ecosystem": "cargo"
     },
@@ -3547,6 +3445,12 @@
       "type": "library",
       "name": "windows-targets",
       "version": "0.42.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "windows-targets",
+      "version": "0.52.6",
       "ecosystem": "cargo"
     },
     {
@@ -3569,8 +3473,20 @@
     },
     {
       "type": "library",
+      "name": "windows_aarch64_gnullvm",
+      "version": "0.52.6",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "windows_aarch64_msvc",
       "version": "0.42.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "windows_aarch64_msvc",
+      "version": "0.52.6",
       "ecosystem": "cargo"
     },
     {
@@ -3581,8 +3497,26 @@
     },
     {
       "type": "library",
+      "name": "windows_i686_gnu",
+      "version": "0.52.6",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "windows_i686_gnullvm",
+      "version": "0.52.6",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "windows_i686_msvc",
       "version": "0.42.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "windows_i686_msvc",
+      "version": "0.52.6",
       "ecosystem": "cargo"
     },
     {
@@ -3593,14 +3527,32 @@
     },
     {
       "type": "library",
+      "name": "windows_x86_64_gnu",
+      "version": "0.52.6",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "windows_x86_64_gnullvm",
       "version": "0.42.2",
       "ecosystem": "cargo"
     },
     {
       "type": "library",
+      "name": "windows_x86_64_gnullvm",
+      "version": "0.52.6",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "windows_x86_64_msvc",
       "version": "0.42.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "windows_x86_64_msvc",
+      "version": "0.52.6",
       "ecosystem": "cargo"
     },
     {
@@ -3653,6 +3605,24 @@
     },
     {
       "type": "library",
+      "name": "x11rb",
+      "version": "0.13.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "x11rb-protocol",
+      "version": "0.13.2",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "xkeysym",
+      "version": "0.2.1",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "yoke",
       "version": "0.8.4",
       "ecosystem": "cargo"
@@ -3665,6 +3635,18 @@
     },
     {
       "type": "library",
+      "name": "zerocopy",
+      "version": "0.8.63",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "zerocopy-derive",
+      "version": "0.8.63",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
       "name": "zerofrom",
       "version": "0.1.8",
       "ecosystem": "cargo"
@@ -3673,6 +3655,12 @@
       "type": "library",
       "name": "zerofrom-derive",
       "version": "0.1.8",
+      "ecosystem": "cargo"
+    },
+    {
+      "type": "library",
+      "name": "zeroize",
+      "version": "1.9.1",
       "ecosystem": "cargo"
     },
     {

@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            app/src-tauri/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('app/src-tauri/Cargo.lock') }}
+
+      - name: Frontend tests and build
+        working-directory: app
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      - name: Extension tests
+        working-directory: extension
+        run: |
+          npm ci
+          npm test
+
+      - name: Rust tests
+        working-directory: app/src-tauri
+        run: cargo test
+
+      - name: Dependency audit (npm)
+        working-directory: app
+        run: npm audit --audit-level=high
+
+      - name: Dependency audit (cargo)
+        uses: taiki-e/install-action@cargo-audit
+      - name: cargo audit
+        working-directory: app/src-tauri
+        run: cargo audit
+
+      - name: Contrast checks + SBOM
+        run: |
+          node scripts/contrast.mjs
+          node scripts/sbom.mjs
+
+      - name: Build NSIS installer
+        working-directory: app
+        run: npm run tauri build
+
+      - name: Performance budgets (needs built installer)
+        run: node scripts/perf-budget.mjs
+
+      - name: Upload installer + SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: notch-installer
+          path: |
+            app/src-tauri/target/release/bundle/nsis/*.exe
+            sbom.json

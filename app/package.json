@@ -1,8 +1,8 @@
 {
   "name": "notch-by-irumva",
-  "version": "0.1.0",
+  "version": "1.2.6",
   "private": true,
-  "description": "Notch by IRUMVA — a Dynamic Island for Windows 11",
+  "description": "Notch by IRUMVA â€” a Dynamic Island for Windows 11",
   "author": "IRUMVA Sosthene",
   "license": "MIT",
   "type": "module",
@@ -15,6 +15,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-global-shortcut": "^2.4.1",
     "react": "^19.0.0",
@@ -27,6 +28,6 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
-    "vitest": "^2.1.8"
+    "vitest": "^5.1.0"
   }
 }

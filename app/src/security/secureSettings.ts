@@ -13,8 +13,6 @@ export interface SecureBridge {
   secretSet(key: string, value: string): Promise<boolean>;
   secretGet(key: string): Promise<string | null>;
   secretDelete(key: string): Promise<boolean>;
-  helloVerify(message: string): Promise<{ ok: boolean; status: string }>;
-  pairingStart(): Promise<string | null>;
   dataExport(): Promise<string | null>;
   dataErase(): Promise<boolean>;
 }
@@ -29,8 +27,6 @@ export function memoryBridge(): SecureBridge & { stored: () => string | null } {
     secretSet: async (k, v) => { secrets.set(k, v); return true; },
     secretGet: async (k) => secrets.get(k) ?? null,
     secretDelete: async (k) => secrets.delete(k),
-    helloVerify: async () => ({ ok: false, status: 'unavailable-outside-tauri' }),
-    pairingStart: async () => null,
     dataExport: async () => settings,
     dataErase: async () => { settings = null; secrets.clear(); return true; },
   };

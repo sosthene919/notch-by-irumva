@@ -4,9 +4,9 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react
  *  states: rest, hover, pressed, focus, disabled, loading, error — styled in app.css. */
 
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' | 'danger'; loading?: boolean };
-export function Button({ variant = 'ghost', loading, children, disabled, ...rest }: BtnProps) {
+export function Button({ variant = 'ghost', loading, children, disabled, className, ...rest }: BtnProps) {
   return (
-    <button className={`btn btn-${variant}`} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
+    <button className={`btn btn-${variant}${className ? ` ${className}` : ''}`} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
       {loading ? 'Working…' : children}
     </button>
   );
