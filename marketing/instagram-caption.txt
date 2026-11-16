@@ -1,0 +1,13 @@
+Your Windows desktop just got a little smarter.
+
+Notch by IRUMVA is a Dynamic Island for Windows 11: a compact, always-on-top surface for music, timers, reminders, battery, volume, Bluetooth, privacy alerts, notifications, and quick productivity tools.
+
+It stays out of the way until you need it, then expands with a click or hold. Built for focus, made for everyday work.
+
+Download the free Windows installer from the latest GitHub release:
+https://github.com/sosthene919/notch-by-irumva/releases/latest
+
+Support development on Ko-fi:
+https://ko-fi.com/iwasaki10
+
+#NotchByIRUMVA #Windows11 #ProductivityApp #DynamicIsland #DesktopApp #IndieDev #WindowsApps

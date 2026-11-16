@@ -11,6 +11,14 @@ Created by IRUMVA Sosthene. Built with Muse AI and Claude Sonnet.
 
 The same links are in the app under Settings > About.
 
+## Download
+
+Windows users can download the latest installer from
+[GitHub Releases](https://github.com/sosthene919/notch-by-irumva/releases/latest).
+The repository includes screenshots and a short demo in [`marketing/`](marketing/).
+The current installer is unsigned, so Windows SmartScreen may show a first-run warning.
+Compare the installer hash with `SHA256SUMS.txt` before running it.
+
 > Font: the UI prefers **SF Pro** (the macOS system face) when a licensed copy is installed on the PC, and otherwise uses **Inter** (SIL OFL), the closest open-source match to SF Pro, bundled with the app. OnlySans is still honoured when installed, but it is commercial and is not bundled.
 
 ## Status
