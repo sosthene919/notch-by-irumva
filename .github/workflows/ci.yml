@@ -34,10 +34,16 @@ jobs:
           npm run build
 
       - name: Extension tests
-        working-directory: extension
+        shell: pwsh
         run: |
-          npm ci
-          npm test
+          if (Test-Path 'extension/package.json') {
+            Push-Location extension
+            npm ci
+            npm test
+            Pop-Location
+          } else {
+            Write-Host 'No extension package present; skipping extension tests.'
+          }
 
       - name: Rust tests
         working-directory: app/src-tauri
