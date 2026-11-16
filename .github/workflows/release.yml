@@ -43,5 +43,3 @@ jobs:
           files: |
             app/src-tauri/target/release/bundle/nsis/*.exe
             SHA256SUMS.txt
-            marketing/instagram-post.png
-            marketing/notch-demo.mp4
